@@ -1,8 +1,6 @@
+/* eslint-disable no-console */
 import { addExtra } from 'puppeteer-extra';
 import PortalPlugin from './index';
-// import * as types from './types'
-
-// import { Puppeteer } from './puppeteer-mods'
 
 const PUPPETEER_ARGS = [
   /* '--no-sandbox', '--disable-setuid-sandbox', */ '--remote-debugging-port=3001',
@@ -26,7 +24,12 @@ describe('Top level plugin interface', () => {
 
   it('should wait for user input', async () => {
     const puppeteer = addExtra(require('puppeteer'));
-    const portalPlugin = PortalPlugin();
+    const portalPlugin = PortalPlugin({
+      listenOpts: {
+        port: 3000,
+        // host: 'localhost',
+      },
+    });
     puppeteer.use(portalPlugin);
 
     const browser = await puppeteer.launch({
@@ -35,16 +38,13 @@ describe('Top level plugin interface', () => {
     });
     console.log('launched');
     const page = await browser.newPage();
-    // await page.goto('https://www.example.com', { waitUntil: 'networkidle0' });
-    // await page.wait(10000);
-
     const url = await page.openPortal();
     console.log(url);
-    await page.goto('https://www.hcaptcha.com/', { waitUntil: 'networkidle0' });
+    await page.goto('https://www.google.com/recaptcha/api2/demo', { waitUntil: 'networkidle0' });
     const successDiv = await page.waitForSelector('.recaptcha-success', {
       timeout: 86400 * 1000,
     });
-    expect(successDiv.toString()).toEqual('unknown');
+    expect(successDiv).toBeDefined();
     await browser.close();
   });
 });

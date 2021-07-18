@@ -225,7 +225,7 @@ export default class Runner {
   resizePage = debounce(() => {
     const { width, height } = this.$viewer.getBoundingClientRect();
 
-    this.$canvas.width = width - 5;
+    this.$canvas.width = width;
     this.$canvas.height = height;
 
     this.sendWorkerMessage({

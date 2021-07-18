@@ -12,7 +12,7 @@ import { WebSocketParts } from './types';
  * @noInheritDoc
  */
 export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
-  constructor(opts: Partial<types.PluginOptions> = {}) {
+  constructor(opts: Partial<types.PluginOptions>) {
     super(opts);
     this.debug('Initialized', this.opts);
   }
@@ -28,12 +28,12 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
   }
 
   async openPortal(page: Page): Promise<string> {
-    // eslint-disable-next-line no-underscore-dangle
+    // eslint-disable-next-line no-underscore-dangle, @typescript-eslint/no-explicit-any
     const targetId = (page as any)._target._targetId as string;
     const browser = page.browser();
     const wsUrl = browser.wsEndpoint();
     // const wsParts = this.getWebSocketParts(browser.wsEndpoint());
-    const url = hostPortal(wsUrl, targetId);
+    const url = hostPortal({ wsUrl, targetId, listenOpts: this.opts.listenOpts });
     return url;
   }
 

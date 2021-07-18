@@ -1,6 +1,8 @@
 import express from 'express';
 import { Server } from 'http';
 import path from 'path';
+import type { ListenOptions } from 'net';
+import https, { ServerOptions } from 'https';
 
 const BASE_URL = '/';
 const app = express();
@@ -17,8 +19,15 @@ app.use(BASE_URL, router);
 let server: Server | undefined;
 const openPortals = new Set<string>();
 
-function openServer() {
-  if (!server) server = app.listen('3000');
+function openServer(listenOpts?: ListenOptions, serverOpts: ServerOptions = {}) {
+  if (!server) {
+    if (Object.entries(serverOpts).length > 0) {
+      server = https.createServer(serverOpts, app);
+      server.listen(listenOpts);
+    } else {
+      app.listen(listenOpts);
+    }
+  }
 }
 
 function closeServer() {
@@ -28,11 +37,18 @@ function closeServer() {
   }
 }
 
-export function hostPortal(wsUrl: string, targetId: string): string {
-  openServer();
-  openPortals.add(wsUrl); // Do I need to add targetId as well?
-  return `http://localhost:3000/${encodeURIComponent(wsUrl)}?targetId=${encodeURIComponent(
-    targetId
+export interface HostPortalParams {
+  wsUrl: string;
+  targetId: string;
+  listenOpts?: ListenOptions;
+}
+
+export function hostPortal(params: HostPortalParams): string {
+  openServer(params.listenOpts);
+  openPortals.add(params.wsUrl); // Do I need to add targetId as well?
+  // TODO: Fix this URL via baseURL config
+  return `http://localhost:3000/${encodeURIComponent(params.wsUrl)}?targetId=${encodeURIComponent(
+    params.targetId
   )}`;
 }
 
