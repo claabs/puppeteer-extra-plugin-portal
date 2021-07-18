@@ -1,6 +1,6 @@
 # puppeteer-extra-plugin-portal
 
-A [puppeteer-extra](https://github.com/berstend/puppeteer-extra) plugin that hosts a webserver to remotely view puppeteer sessions.
+A [puppeteer-extra](https://github.com/berstend/puppeteer-extra) plugin that hosts a webserver to remotely view puppeteer sessions. Essentially opening a "portal" to the page.
 
 ## Install
 
