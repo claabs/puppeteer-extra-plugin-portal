@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable class-methods-use-this */
 import { PuppeteerExtraPlugin } from 'puppeteer-extra-plugin';
 
-import type { Browser, Page } from 'puppeteer';
+import type { Browser, LaunchOptions, Page, Target } from 'puppeteer';
 import { URL } from 'url';
 import * as types from './types';
-import { closePortal, hostPortal } from './server';
+import { PortalServer } from './server';
 import { WebSocketParts } from './types';
 
 /**
@@ -12,9 +13,30 @@ import { WebSocketParts } from './types';
  * @noInheritDoc
  */
 export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
+  private webPortalBaseUrl: URL;
+
+  private webSocketBaseUrl?: URL;
+
+  private portalServer: PortalServer;
+
   constructor(opts: Partial<types.PluginOptions>) {
     super(opts);
     this.debug('Initialized', this.opts);
+    this.webPortalBaseUrl = new URL((this.opts as types.PluginOptions).webPortalConfig!.baseUrl!);
+    this.webSocketBaseUrl = (this.opts as types.PluginOptions).webSocketConfig?.baseUrl
+      ? new URL((this.opts as types.PluginOptions).webSocketConfig!.baseUrl!)
+      : undefined;
+    if (this.webPortalBaseUrl.protocol === 'https:' && this.webSocketBaseUrl?.protocol !== 'wss:') {
+      throw new Error(
+        'If portal baseUrl is secured (https), the webSocket baseUrl must also be secured (wss)'
+      );
+    }
+    this.portalServer = new PortalServer({
+      webPortalBaseUrl: this.webPortalBaseUrl,
+      webSocketBaseUrl: this.webSocketBaseUrl,
+      listenOpts: (this.opts as types.PluginOptions).webPortalConfig?.listenOpts,
+      serverOpts: (this.opts as types.PluginOptions).webPortalConfig?.serverOpts,
+    });
   }
 
   get name(): string {
@@ -24,7 +46,24 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
   get defaults(): types.PluginOptions {
     return {
       foo: true,
+      webPortalConfig: {
+        listenOpts: {
+          port: 3000,
+        },
+        baseUrl: 'http://localhost:3000',
+      },
     };
+  }
+
+  async beforeLaunch(options: LaunchOptions & { args: string[] }): Promise<void> {
+    const webSocketPort = (this.opts as types.PluginOptions).webSocketConfig?.port;
+    const webSocketAddress = (this.opts as types.PluginOptions).webSocketConfig?.address;
+    if (webSocketPort) {
+      options.args.push(`--remote-debugging-port=${webSocketPort}`);
+    }
+    if (webSocketAddress) {
+      options.args.push(`----remote-debugging-address=${webSocketAddress}`);
+    }
   }
 
   async openPortal(page: Page): Promise<string> {
@@ -33,14 +72,18 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
     const browser = page.browser();
     const wsUrl = browser.wsEndpoint();
     // const wsParts = this.getWebSocketParts(browser.wsEndpoint());
-    const url = hostPortal({ wsUrl, targetId, listenOpts: this.opts.listenOpts });
+    const url = await this.portalServer.hostPortal({
+      wsUrl,
+      targetId,
+      listenOpts: (this.opts as types.PluginOptions).webPortalConfig?.listenOpts,
+    });
     return url;
   }
 
   async closePortal(page: Page): Promise<void> {
-    const browser = page.browser();
-    const wsParts = this.getWebSocketParts(browser.wsEndpoint());
-    closePortal(wsParts.id);
+    // eslint-disable-next-line no-underscore-dangle, @typescript-eslint/no-explicit-any
+    const targetId = (page as any)._target._targetId as string;
+    await this.portalServer.closePortal(targetId);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -48,7 +91,6 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
     /* eslint-disable no-param-reassign */
     prop.openPortal = async () => this.openPortal(prop);
     prop.closePortal = async () => this.openPortal(prop);
-    /* eslint-enable no-param-reassign */
   }
 
   private getWebSocketParts(wsEndpoint: string): WebSocketParts {
@@ -75,6 +117,13 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
   async onBrowser(browser: Browser): Promise<void> {
     const pages = await browser.pages();
     pages.forEach((page) => this.addCustomMethods(page));
+  }
+
+  async onTargetDestroyed(target: Target): Promise<void> {
+    const page = await target.page();
+    if (page) {
+      await this.closePortal(page);
+    }
   }
 }
 

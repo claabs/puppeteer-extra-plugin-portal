@@ -3,38 +3,14 @@ import { Server } from 'http';
 import path from 'path';
 import type { ListenOptions } from 'net';
 import https, { ServerOptions } from 'https';
+import { once } from 'events';
+import { URL } from 'url';
 
-const BASE_URL = '/';
-const app = express();
-const router = express.Router();
-
-router.use(express.static(path.join(__dirname, 'frontend', 'static')));
-
-router.get('/ws*', (request, response) => {
-  response.sendFile(path.resolve(__dirname, 'frontend', 'static', 'index.html'));
-});
-
-app.use(BASE_URL, router);
-
-let server: Server | undefined;
-const openPortals = new Set<string>();
-
-function openServer(listenOpts?: ListenOptions, serverOpts: ServerOptions = {}) {
-  if (!server) {
-    if (Object.entries(serverOpts).length > 0) {
-      server = https.createServer(serverOpts, app);
-      server.listen(listenOpts);
-    } else {
-      app.listen(listenOpts);
-    }
-  }
-}
-
-function closeServer() {
-  if (server) {
-    server.close();
-    server = undefined;
-  }
+export interface PortalServerProps {
+  listenOpts?: ListenOptions;
+  serverOpts?: ServerOptions;
+  webPortalBaseUrl: URL;
+  webSocketBaseUrl?: URL;
 }
 
 export interface HostPortalParams {
@@ -42,17 +18,82 @@ export interface HostPortalParams {
   targetId: string;
   listenOpts?: ListenOptions;
 }
+export class PortalServer {
+  private server?: Server;
 
-export function hostPortal(params: HostPortalParams): string {
-  openServer(params.listenOpts);
-  openPortals.add(params.wsUrl); // Do I need to add targetId as well?
-  // TODO: Fix this URL via baseURL config
-  return `http://localhost:3000/${encodeURIComponent(params.wsUrl)}?targetId=${encodeURIComponent(
-    params.targetId
-  )}`;
-}
+  private openPortals: Set<string> = new Set();
 
-export function closePortal(id: string): void {
-  openPortals.delete(id);
-  if (openPortals.size === 0) closeServer();
+  private listenOpts?: ListenOptions;
+
+  private serverOpts: ServerOptions = {};
+
+  private webPortalBaseUrl: URL;
+
+  private webSocketBaseUrl?: URL;
+
+  private app: express.Express;
+
+  constructor(props: PortalServerProps) {
+    this.listenOpts = props.listenOpts;
+    this.serverOpts = props.serverOpts || {};
+    this.webPortalBaseUrl = props.webPortalBaseUrl;
+    this.webSocketBaseUrl = props.webSocketBaseUrl;
+    this.app = express();
+    const router = express.Router();
+
+    router.use(express.static(path.join(__dirname, 'frontend', 'static')));
+
+    // There has to be a better way to do this...
+    router.get('/ws*', (request, response) => {
+      response.sendFile(path.resolve(__dirname, 'frontend', 'static', 'index.html'));
+    });
+
+    const basePath = props.webPortalBaseUrl?.pathname || '/';
+
+    this.app.use(basePath, router);
+  }
+
+  private async openServer(): Promise<void> {
+    if (!this.server) {
+      if (Object.entries(this.serverOpts).length > 0) {
+        this.server = https.createServer(this.serverOpts, this.app);
+        this.server.listen(this.listenOpts);
+      } else {
+        this.server = this.app.listen(this.listenOpts);
+      }
+      await once(this.server, 'listening');
+    }
+  }
+
+  private async closeServer(): Promise<void> {
+    if (this.server) {
+      this.server.close();
+      await once(this.server, 'close');
+      this.server = undefined;
+    }
+  }
+
+  public async hostPortal(params: HostPortalParams): Promise<string> {
+    if (this.openPortals.size === 0) {
+      await this.openServer();
+    }
+    this.openPortals.add(params.targetId);
+    const wsUrl = new URL(params.wsUrl);
+    const fullUrl = this.webPortalBaseUrl;
+    if (this.webSocketBaseUrl) {
+      wsUrl.hostname = this.webSocketBaseUrl.hostname;
+      wsUrl.port = this.webSocketBaseUrl.port;
+      wsUrl.protocol = this.webSocketBaseUrl.protocol;
+    }
+    fullUrl.pathname = `${
+      this.webPortalBaseUrl.pathname === '/' ? '' : this.webPortalBaseUrl.pathname
+    }/${encodeURIComponent(wsUrl.toString())}`;
+    fullUrl.searchParams.set('targetId', encodeURIComponent(params.targetId));
+    return fullUrl.toString();
+  }
+
+  public async closePortal(targetId: string): Promise<void> {
+    this.openPortals.delete(targetId);
+    if (this.openPortals.size === 0) this.closeServer();
+  }
 }
