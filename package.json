@@ -16,6 +16,7 @@
   "author": "claabs",
   "license": "MIT",
   "scripts": {
+    "install": "(cd frontend && npm i)",
     "clean": "rimraf dist/*",
     "prebuild": "run-s clean",
     "build": "run-s build:tsc build:rollup ambient-dts build:frontend",
