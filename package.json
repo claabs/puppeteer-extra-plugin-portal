@@ -8,7 +8,10 @@
   "files": [
     "dist"
   ],
-  "repository": "claabs/puppeteer-extra-plugin-portal",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/claabs/puppeteer-extra-plugin-portal.git"
+  },
   "homepage": "https://github.com/claabs/puppeteer-extra-plugin-portal",
   "author": "claabs",
   "license": "MIT",
