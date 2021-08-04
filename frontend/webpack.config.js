@@ -2,7 +2,7 @@ const path = require('path');
 const HtmlWebPackPlugin = require('html-webpack-plugin');
 
 const srcDir = path.resolve(__dirname, 'src');
-const outputDir = path.resolve(__dirname, 'static');
+const outputDir = path.resolve(__dirname, '..', 'dist', 'frontend');
 
 const main = {
   mode: 'development',
@@ -39,7 +39,7 @@ const main = {
     new HtmlWebPackPlugin({
       title: 'Puppeteer Portal',
       template: path.join(srcDir, 'index.html'),
-      // hash: true,
+      hash: true,
       publicPath: '/',
     }),
   ],

@@ -18,6 +18,12 @@ export interface HostPortalParams {
   targetId: string;
   listenOpts?: ListenOptions;
 }
+
+const frontendRoot =
+  path.extname(__filename) === '.ts'
+    ? path.join(__dirname, '..', 'dist', 'frontend')
+    : path.join(__dirname, 'frontend');
+
 export class PortalServer {
   private server?: Server;
 
@@ -41,11 +47,11 @@ export class PortalServer {
     this.app = express();
     const router = express.Router();
 
-    router.use(express.static(path.join(__dirname, 'frontend', 'static')));
+    router.use(express.static(frontendRoot));
 
     // There has to be a better way to do this...
     router.get('/ws*', (request, response) => {
-      response.sendFile(path.resolve(__dirname, 'frontend', 'static', 'index.html'));
+      response.sendFile(path.join(frontendRoot, 'index.html'));
     });
 
     const basePath = props.webPortalBaseUrl?.pathname || '/';

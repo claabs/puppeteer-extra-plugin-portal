@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "outDir": "./dist",
+    "outDir": "./types-dist",
     "target": "es2017",
     "module": "es2015",
     "moduleResolution": "node",
@@ -11,7 +11,6 @@
       "es2019",
       "DOM"
     ],
-    // "noResolve": true, // Important: Otherwise TS would rewrite our ambient d.ts file locations (see: yarn copy-dts) :(
     "sourceMap": true,
     "declaration": true,
     "allowSyntheticDefaultImports": true,
@@ -25,12 +24,12 @@
     "removeComments": false
   },
   "include": [
-    "**/*.ts",
-    "**/*.js"
+    "src/**/*.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "frontend"
+    "frontend",
+    "**/*.test.ts"
   ]
 }

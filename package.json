@@ -1,6 +1,6 @@
 {
   "name": "puppeteer-extra-plugin-portal",
-  "version": "3.0.0",
+  "version": "3.0.0-rc.1",
   "description": "A puppeteer-extra plugin to let you interact with headless sessions remotely",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
@@ -15,19 +15,20 @@
   "scripts": {
     "clean": "rimraf dist/*",
     "prebuild": "run-s clean",
-    "build": "run-s build:tsc build:rollup ambient-dts",
-    "build:tsc": "tsc --project tsconfig.json --module commonjs",
+    "build": "run-s build:tsc build:rollup ambient-dts build:frontend",
+    "build:tsc": "tsc --project types.tsconfig.json",
     "build:rollup": "rollup -c rollup.config.ts",
+    "build:frontend": "(cd frontend && npm run build)",
     "docs": "node -e 0",
     "serve": "(cd src/frontend && npm run build) && ts-node src/server.ts",
     "predocs2": "rimraf docs/*",
     "docs2": "typedoc --module commonjs --readme none --target ES6 --theme markdown --excludeNotExported --excludeExternals --excludePrivate --out docs --mode file src/index.ts",
     "lint": "eslint '**/*.ts' '**/*.js'",
-    "test": "ava -v --config ava.config-ts.js",
+    "test": "jest",
     "pretest-ci": "run-s build",
-    "test-ci": "ava --fail-fast --concurrency 2 -v",
+    "test-ci": "jest --runInBand",
     "ambient-dts": "run-s ambient-dts-copy ambient-dts-fix-path",
-    "ambient-dts-copy": "copyfiles -u 1 \"src/**/*.d.ts\" dist",
+    "ambient-dts-copy": "copyfiles -u 1 \"types-dist/**/*.d.ts\" dist && rimraf types-dist",
     "ambient-dts-fix-path": "replace-in-files --string='/// <reference path=\"../src/' --replacement='/// <reference path=\"../dist/' 'dist/**/*.d.ts'"
   },
   "engines": {
@@ -44,6 +45,8 @@
     "control"
   ],
   "devDependencies": {
+    "@rollup/plugin-node-resolve": "^13.0.4",
+    "@rollup/plugin-typescript": "^8.2.5",
     "@types/debug": "^4.1.5",
     "@types/express": "^4.17.12",
     "@types/jest": "^26.0.23",
@@ -66,9 +69,8 @@
     "replace-in-files-cli": "^0.3.1",
     "rimraf": "^3.0.0",
     "rollup": "^2.53.2",
-    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-dts": "^3.0.2",
     "rollup-plugin-sourcemaps": "^0.6.3",
-    "rollup-plugin-typescript2": "^0.30.0",
     "ts-jest": "^27.0.2",
     "ts-node": "^10.0.0",
     "typescript": "^4.3.2"
@@ -76,9 +78,7 @@
   "dependencies": {
     "debug": "^4.1.1",
     "express": "^4.17.1",
-    "merge-deep": "^3.0.2",
-    "puppeteer-extra-plugin": "^3.1.9",
-    "qs": "^6.10.1"
+    "puppeteer-extra-plugin": "^3.1.9"
   },
   "peerDependencies": {
     "puppeteer-extra": "*"

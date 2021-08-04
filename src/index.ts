@@ -6,7 +6,8 @@ import type { Browser, LaunchOptions, Page, Target } from 'puppeteer';
 import { URL } from 'url';
 import * as types from './types';
 import { PortalServer } from './server';
-import { WebSocketParts } from './types';
+
+export * from './types';
 
 /**
  * A puppeteer-extra plugin to let you interact with headless sessions remotely.
@@ -39,11 +40,11 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
     });
   }
 
-  get name(): string {
+  public get name(): string {
     return 'portal';
   }
 
-  get defaults(): types.PluginOptions {
+  public get defaults(): types.PluginOptions {
     return {
       foo: true,
       webPortalConfig: {
@@ -66,7 +67,7 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
     }
   }
 
-  async openPortal(page: Page): Promise<string> {
+  public async openPortal(page: Page): Promise<string> {
     // eslint-disable-next-line no-underscore-dangle, @typescript-eslint/no-explicit-any
     const targetId = (page as any)._target._targetId as string;
     const browser = page.browser();
@@ -80,7 +81,7 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
     return url;
   }
 
-  async closePortal(page: Page): Promise<void> {
+  public async closePortal(page: Page): Promise<void> {
     // eslint-disable-next-line no-underscore-dangle, @typescript-eslint/no-explicit-any
     const targetId = (page as any)._target._targetId as string;
     await this.portalServer.closePortal(targetId);
@@ -91,19 +92,6 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
     /* eslint-disable no-param-reassign */
     prop.openPortal = async () => this.openPortal(prop);
     prop.closePortal = async () => this.openPortal(prop);
-  }
-
-  private getWebSocketParts(wsEndpoint: string): WebSocketParts {
-    // ws://127.0.0.1:3001/devtools/browser/43a62a3f-0e04-40ea-bae3-04832ee4ce43
-    const wsUrl = new URL(wsEndpoint);
-    const { hostname, port, protocol } = wsUrl;
-    const [id] = wsUrl.pathname.split('/').slice(-1);
-    return {
-      protocol,
-      id,
-      hostname,
-      port,
-    };
   }
 
   async onPageCreated(page: Page): Promise<void> {

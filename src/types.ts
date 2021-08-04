@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/triple-slash-reference */
 /// <reference path="./puppeteer-mods.d.ts" />
+// Warn: The above is EXTREMELY important for our custom page mods to be recognized by the end users typescript!
 
 import { ServerOptions } from 'https';
 import type { ListenOptions } from 'net';

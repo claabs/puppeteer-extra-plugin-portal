@@ -2,12 +2,12 @@
   "name": "puppeteer-extra-plugin-portal-frontend",
   "version": "3.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/index.ts",
   "scripts": {
-    "build": "rimraf static && webpack"
+    "build": "rimraf ../dist/frontend && webpack"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "puppeteer-core": "^10.0.0"
   },
