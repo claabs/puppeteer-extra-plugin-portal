@@ -1,6 +1,6 @@
 {
   "name": "puppeteer-extra-plugin-portal",
-  "version": "3.0.0-rc.1",
+  "version": "3.0.0-rc.2",
   "description": "A puppeteer-extra plugin to let you interact with headless sessions remotely",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
@@ -16,7 +16,7 @@
   "author": "claabs",
   "license": "MIT",
   "scripts": {
-    "install": "(cd frontend && npm i)",
+    "prepare": "(cd frontend && npm i)",
     "clean": "rimraf dist/*",
     "prebuild": "run-s clean",
     "build": "run-s build:tsc build:rollup ambient-dts build:frontend",
