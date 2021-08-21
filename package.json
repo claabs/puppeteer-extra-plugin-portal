@@ -1,6 +1,6 @@
 {
   "name": "puppeteer-extra-plugin-portal",
-  "version": "3.0.0-rc.2",
+  "version": "3.0.0-rc.3",
   "description": "A puppeteer-extra plugin to let you interact with headless sessions remotely",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
@@ -32,7 +32,7 @@
     "pretest-ci": "run-s build",
     "test-ci": "jest --runInBand",
     "ambient-dts": "run-s ambient-dts-copy ambient-dts-fix-path",
-    "ambient-dts-copy": "copyfiles -u 1 \"types-dist/**/*.d.ts\" dist && rimraf types-dist",
+    "ambient-dts-copy": "copyfiles -u 1 \"types-dist/**/*.d.ts\" \"src/puppeteer-mods.d.ts\" dist && rimraf types-dist",
     "ambient-dts-fix-path": "replace-in-files --string='/// <reference path=\"../src/' --replacement='/// <reference path=\"../dist/' 'dist/**/*.d.ts'"
   },
   "engines": {
