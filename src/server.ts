@@ -5,12 +5,14 @@ import type { ListenOptions } from 'net';
 import https, { ServerOptions } from 'https';
 import { once } from 'events';
 import { URL } from 'url';
+import debug from 'debug';
 
 export interface PortalServerProps {
   listenOpts?: ListenOptions;
   serverOpts?: ServerOptions;
   webPortalBaseUrl: URL;
   webSocketBaseUrl?: URL;
+  debug: debug.Debugger;
 }
 
 export interface HostPortalParams {
@@ -39,7 +41,10 @@ export class PortalServer {
 
   private app: express.Express;
 
+  private debug: debug.Debugger;
+
   constructor(props: PortalServerProps) {
+    this.debug = props.debug;
     this.listenOpts = props.listenOpts;
     this.serverOpts = props.serverOpts || {};
     this.webPortalBaseUrl = props.webPortalBaseUrl;
@@ -84,16 +89,21 @@ export class PortalServer {
       await this.openServer();
     }
     this.openPortals.add(params.targetId);
+    this.debug('params.wsUrl', params.wsUrl);
     const wsUrl = new URL(params.wsUrl);
+    this.debug('wsUrl', wsUrl);
     const fullUrl = this.webPortalBaseUrl;
+    // http://localhost:3000/ws%3A%2F%2F127.0.0.1%3A40523%2Fdevtools%2Fbrowser%2F895f08da-143e-442b-9bfa-4c70a48654d2/ws%3A%2F%2F127.0.0.1%3A40523%2Fdevtools%2Fbrowser%2F895f08da-143e-442b-9bfa-4c70a48654d2/ws%3A%2F%2F127.0.0.1%3A44633%2Fdevtools%2Fbrowser%2Fc9105a48-285f-4286-a987-387a9a6e73c6?targetId=1B2B98BB9CAEB2176CEA7CB167EEAB53
     if (this.webSocketBaseUrl) {
       wsUrl.hostname = this.webSocketBaseUrl.hostname;
       wsUrl.port = this.webSocketBaseUrl.port;
       wsUrl.protocol = this.webSocketBaseUrl.protocol;
     }
+    this.debug('wsUrl.toString()', wsUrl.toString());
     fullUrl.pathname = `${
       this.webPortalBaseUrl.pathname === '/' ? '' : this.webPortalBaseUrl.pathname
     }/${encodeURIComponent(wsUrl.toString())}`;
+    this.debug('fullUrl.pathname', fullUrl.pathname);
     fullUrl.searchParams.set('targetId', encodeURIComponent(params.targetId));
     return fullUrl.toString();
   }

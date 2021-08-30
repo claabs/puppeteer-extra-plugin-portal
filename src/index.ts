@@ -23,7 +23,9 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
   constructor(opts: Partial<types.PluginOptions>) {
     super(opts);
     this.debug('Initialized', this.opts);
-    this.webPortalBaseUrl = new URL((this.opts as types.PluginOptions).webPortalConfig!.baseUrl!);
+    this.webPortalBaseUrl = new URL(
+      (this.opts as types.PluginOptions).webPortalConfig?.baseUrl || 'http://localhost:3000'
+    );
     this.webSocketBaseUrl = (this.opts as types.PluginOptions).webSocketConfig?.baseUrl
       ? new URL((this.opts as types.PluginOptions).webSocketConfig!.baseUrl!)
       : undefined;
@@ -33,6 +35,7 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
       );
     }
     this.portalServer = new PortalServer({
+      debug: this.debug,
       webPortalBaseUrl: this.webPortalBaseUrl,
       webSocketBaseUrl: this.webSocketBaseUrl,
       listenOpts: (this.opts as types.PluginOptions).webPortalConfig?.listenOpts,
@@ -44,6 +47,7 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
     return 'portal';
   }
 
+  // TODO: This doesn't set defaults...
   public get defaults(): types.PluginOptions {
     return {
       foo: true,
