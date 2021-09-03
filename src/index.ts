@@ -37,7 +37,6 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
     this.portalServer = new PortalServer({
       debug: this.debug,
       webPortalBaseUrl: this.webPortalBaseUrl,
-      webSocketBaseUrl: this.webSocketBaseUrl,
       listenOpts: (this.opts as types.PluginOptions).webPortalConfig?.listenOpts,
       serverOpts: (this.opts as types.PluginOptions).webPortalConfig?.serverOpts,
     });
@@ -80,7 +79,6 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
     const url = await this.portalServer.hostPortal({
       wsUrl,
       targetId,
-      listenOpts: (this.opts as types.PluginOptions).webPortalConfig?.listenOpts,
     });
     return url;
   }

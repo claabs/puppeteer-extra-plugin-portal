@@ -5,9 +5,9 @@ export const getBaseURL = () => {
 
 export const getWebSocketURL = () => {
   const baseURL = getBaseURL();
-  const websocketURL = new URL(decodeURIComponent(baseURL.pathname).slice(1));
-  websocketURL.protocol = baseURL.protocol === 'https:' ? 'wss:' : 'ws:';
-  return websocketURL;
+  const wsProtocol = baseURL.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = new URL(`${wsProtocol}${baseURL.host}${baseURL.pathname}ws`);
+  return wsUrl;
 };
 
 const devtoolsInspectorURL = 'devtools/inspector.html';
