@@ -6,7 +6,8 @@ export const getBaseURL = () => {
 export const getWebSocketURL = () => {
   const baseURL = getBaseURL();
   const wsProtocol = baseURL.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = new URL(`${wsProtocol}${baseURL.host}${baseURL.pathname}ws`);
+  const targetId = baseURL.searchParams.get('targetId');
+  const wsUrl = new URL(`${wsProtocol}${baseURL.host}${baseURL.pathname}ws/${targetId}`);
   return wsUrl;
 };
 

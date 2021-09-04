@@ -72,7 +72,7 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
 
   public async openPortal(page: Page): Promise<string> {
     // eslint-disable-next-line no-underscore-dangle, @typescript-eslint/no-explicit-any
-    const targetId = (page as any)._target._targetId as string;
+    const targetId = (page.target() as any)._targetId as string;
     const browser = page.browser();
     const wsUrl = browser.wsEndpoint();
     // const wsParts = this.getWebSocketParts(browser.wsEndpoint());
@@ -85,7 +85,7 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
 
   public async closePortal(page: Page): Promise<void> {
     // eslint-disable-next-line no-underscore-dangle, @typescript-eslint/no-explicit-any
-    const targetId = (page as any)._target._targetId as string;
+    const targetId = (page.target() as any)._targetId as string;
     await this.portalServer.closePortal(targetId);
   }
 

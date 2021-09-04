@@ -26,10 +26,10 @@ describe('Top level plugin interface', () => {
         // baseUrl: 'https://3000.example.com',
         baseUrl: 'http://localhost:3000',
       },
-      webSocketConfig: {
-        port: 3001,
-        // baseUrl: 'wss://3001.example.com',
-      },
+      // webSocketConfig: {
+      //   port: 3001,
+      //   // baseUrl: 'wss://3001.example.com',
+      // },
     });
     puppeteer.use(portalPlugin);
 
@@ -41,10 +41,21 @@ describe('Top level plugin interface', () => {
     await page.goto('https://www.google.com/recaptcha/api2/demo', { waitUntil: 'networkidle0' });
     const url = await page.openPortal();
     console.log(url);
+
+    const browser2 = await puppeteer.launch({
+      headless: true,
+    });
+    console.log('launched');
+    const page2 = await browser2.newPage();
+    await page2.goto('https://www.google.com/', { waitUntil: 'networkidle0' });
+    const url2 = await page2.openPortal();
+    console.log(url2);
+
     const successDiv = await page.waitForSelector('.recaptcha-success', {
       timeout: 86400 * 1000,
     });
     expect(successDiv).toBeDefined();
     await browser.close();
+    await browser2.close();
   });
 });

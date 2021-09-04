@@ -1,18 +1,18 @@
 import express, { Router } from 'express';
 import http, { Server } from 'http';
 import path from 'path';
-import type { ListenOptions } from 'net';
+import type { ListenOptions, Socket } from 'net';
 import https, { ServerOptions } from 'https';
 import { once } from 'events';
 import { URL } from 'url';
 import debug from 'debug';
 import { createProxyMiddleware, RequestHandler } from 'http-proxy-middleware';
+import { LogProviderCallback } from 'http-proxy-middleware/dist/types';
 
 export interface PortalServerProps {
   listenOpts?: ListenOptions;
   serverOpts?: ServerOptions;
   webPortalBaseUrl: URL;
-  // webSocketBaseUrl?: URL;
   debug: debug.Debugger;
 }
 
@@ -31,21 +31,19 @@ export class PortalServer {
 
   private openPortals: Set<string> = new Set();
 
+  private targetIdProxyMap: Map<string, RequestHandler> = new Map();
+
   private listenOpts?: ListenOptions;
 
   private serverOpts: ServerOptions = {};
 
   private webPortalBaseUrl: URL;
 
-  // private webSocketBaseUrl?: URL;
-
   private app: express.Express;
 
   private debug: debug.Debugger;
 
   private router: Router;
-
-  private wsProxy?: RequestHandler;
 
   constructor(props: PortalServerProps) {
     this.debug = props.debug;
@@ -62,6 +60,27 @@ export class PortalServer {
     this.app.use(basePath, this.router);
   }
 
+  private proxyLogger: LogProviderCallback = () => {
+    const subLogger = this.debug.extend('http-proxy-middleware');
+    return {
+      log: subLogger,
+      debug: subLogger,
+      error: subLogger,
+      info: subLogger,
+      warn: subLogger,
+    };
+  };
+
+  private upgradeHandler(req: express.Request, socket: Socket, head: any): void {
+    const targetId = req.url.split('/').slice(-1)[0];
+    const proxyMiddleware = this.targetIdProxyMap.get(targetId);
+    if (proxyMiddleware?.upgrade) {
+      proxyMiddleware.upgrade(req, socket, head);
+    } else {
+      this.debug(`No proxy middleware found for targetId "${targetId}" when upgrading`);
+    }
+  }
+
   private async openServer(): Promise<void> {
     if (!this.server) {
       if (Object.entries(this.serverOpts).length > 0) {
@@ -73,11 +92,9 @@ export class PortalServer {
       }
       this.server = this.app.listen(this.listenOpts);
       await once(this.server, 'listening');
-      if (this.wsProxy?.upgrade) {
-        // http-proxy-middleware requires a `server` object to add the upgrade path.
-        // Since it doesn't exist when setting up the middleware, we need to pass it to it after we start listening on the server
-        this.server.on('upgrade', this.wsProxy.upgrade);
-      }
+      // http-proxy-middleware requires a `server` object to add the upgrade path.
+      // Since it doesn't exist when setting up the middleware, we need to pass it to it after we start listening on the server
+      this.server.on('upgrade', this.upgradeHandler.bind(this));
     }
   }
 
@@ -91,16 +108,15 @@ export class PortalServer {
 
   public async hostPortal(params: HostPortalParams): Promise<string> {
     this.debug('params.wsUrl', params.wsUrl);
-    // TODO: we need to configure this to support multiple browsers simultaneously
-    this.wsProxy = createProxyMiddleware('/ws', {
+    const wsProxy = createProxyMiddleware(`/ws/${params.targetId}`, {
       target: params.wsUrl,
-      logLevel: 'debug',
+      logLevel: this.debug.enabled ? 'debug' : 'silent',
+      logProvider: this.proxyLogger,
       ws: true,
       changeOrigin: true,
-      ignorePath: true,
     });
-    // Proxy websockets
-    this.router.use(this.wsProxy);
+    this.targetIdProxyMap.set(params.targetId, wsProxy);
+    this.router.use('/ws', wsProxy); // Proxy websockets
     if (this.openPortals.size === 0) {
       await this.openServer();
     }
@@ -113,6 +129,7 @@ export class PortalServer {
 
   public async closePortal(targetId: string): Promise<void> {
     this.openPortals.delete(targetId);
+    this.targetIdProxyMap.delete(targetId);
     if (this.openPortals.size === 0) this.closeServer();
   }
 }

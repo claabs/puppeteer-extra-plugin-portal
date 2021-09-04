@@ -81,8 +81,15 @@ const start = async (data: Message['data']) => {
     closeWorker();
   });
   const pages = await browser.pages();
-  page = pages.find((p: any) => p?._target?._targetId === targetId);
   console.log('pages:', pages);
+  page = pages.find((p: any) => p?._target?._targetId === targetId);
+  if (!page) {
+    sendParentMessage({
+      command: WorkerCommands.error,
+      data: `⚠️ Couldn't find target with targetId ${targetId}`,
+    });
+    return self.close();
+  }
   client = (page as any)._client as CDPSession;
 
   await client.send('Page.startScreencast', { format: 'jpeg', quality });

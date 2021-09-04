@@ -28,7 +28,7 @@
     "predocs2": "rimraf docs/*",
     "docs2": "typedoc --module commonjs --readme none --target ES6 --theme markdown --excludeNotExported --excludeExternals --excludePrivate --out docs --mode file src/index.ts",
     "lint": "eslint '**/*.ts' '**/*.js'",
-    "test": "jest",
+    "test": "DEBUG=puppeteer-extra-plugin:portal* jest",
     "pretest-ci": "run-s build",
     "test-ci": "jest --runInBand",
     "ambient-dts": "run-s ambient-dts-copy ambient-dts-fix-path",
