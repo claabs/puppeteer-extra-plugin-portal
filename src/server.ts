@@ -71,7 +71,7 @@ export class PortalServer {
     };
   };
 
-  private upgradeHandler(req: express.Request, socket: Socket, head: any): void {
+  private upgradeHandler(req: express.Request, socket: Socket, head: Buffer): void {
     const targetId = req.url.split('/').slice(-1)[0];
     const proxyMiddleware = this.targetIdProxyMap.get(targetId);
     if (proxyMiddleware?.upgrade) {
@@ -83,6 +83,7 @@ export class PortalServer {
 
   private async openServer(): Promise<void> {
     if (!this.server) {
+      this.debug('Starting the express server...');
       if (Object.entries(this.serverOpts).length > 0) {
         // The serverOpts are mostly HTTPS-related options, so use `https` if there's any options set
         this.server = https.createServer(this.serverOpts, this.app);
@@ -92,6 +93,7 @@ export class PortalServer {
       }
       this.server = this.app.listen(this.listenOpts);
       await once(this.server, 'listening');
+      this.debug('Express server now listening');
       // http-proxy-middleware requires a `server` object to add the upgrade path.
       // Since it doesn't exist when setting up the middleware, we need to pass it to it after we start listening on the server
       this.server.on('upgrade', this.upgradeHandler.bind(this));
@@ -100,6 +102,7 @@ export class PortalServer {
 
   private async closeServer(): Promise<void> {
     if (this.server) {
+      this.debug('No more open portals, shutting down the express server..');
       this.server.close();
       await once(this.server, 'close');
       this.server = undefined;
@@ -128,8 +131,13 @@ export class PortalServer {
   }
 
   public async closePortal(targetId: string): Promise<void> {
+    this.debug(`Closing portal for targetId "${targetId}""`);
     this.openPortals.delete(targetId);
     this.targetIdProxyMap.delete(targetId);
     if (this.openPortals.size === 0) this.closeServer();
+  }
+
+  public hasOpenPortal(targetId: string): boolean {
+    return this.openPortals.has(targetId);
   }
 }

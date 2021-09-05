@@ -1,5 +1,5 @@
 import { debounce, once } from './util';
-import { getConnectURL, getDevtoolsAppURL, getTargetId } from './api';
+import { getConnectURL, getTargetId } from './api';
 
 import { ProtocolCommands, HostCommands, Message, WorkerCommands } from './types';
 

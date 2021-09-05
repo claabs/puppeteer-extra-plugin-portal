@@ -37,10 +37,6 @@ puppeteer.use(
         },
         baseUrl: 'https://portal.example.com',
       },
-      webSocketConfig: {
-        port: 3001,
-        baseUrl: 'wss://devtools.example.com',
-      },
   })
 )
 
@@ -57,8 +53,10 @@ puppeteer.launch({ headless: true }).then(async browser => {
   const successDiv = await page.waitForSelector('.recaptcha-success', {
       timeout: 86400 * 1000, // 24 hours
     });
-  await browser.close(); // Closing the browser will automatically close the webservers.
-  // Otherwise, you can manually close a portal with
-  await page.closePortal();
+  
+  await page.closePortal(); // You can manually close a portal with
+  await page.close(); // Closing the page will automatically close its portal.
+  await browser.close(); // Closing the browser will automatically close the portals opened on it.
+  // When all portals are closed, the web server will automatically shut down
 })
 ```

@@ -82,7 +82,7 @@ const start = async (data: Message['data']) => {
   });
   const pages = await browser.pages();
   console.log('pages:', pages);
-  page = pages.find((p: any) => p?._target?._targetId === targetId);
+  page = pages.find((p: Page) => p.target()._targetId === targetId);
   if (!page) {
     sendParentMessage({
       command: WorkerCommands.error,
@@ -90,7 +90,7 @@ const start = async (data: Message['data']) => {
     });
     return self.close();
   }
-  client = (page as any)._client as CDPSession;
+  client = await page.target().createCDPSession();
 
   await client.send('Page.startScreencast', { format: 'jpeg', quality });
 
@@ -99,7 +99,7 @@ const start = async (data: Message['data']) => {
   sendParentMessage({
     command: WorkerCommands.startComplete,
     data: {
-      targetId: (page as any)._target._targetId,
+      targetId: page.target()._targetId,
     },
   });
 };
