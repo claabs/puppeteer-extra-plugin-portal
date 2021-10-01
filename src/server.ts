@@ -8,6 +8,7 @@ import { URL } from 'url';
 import debug from 'debug';
 import { createProxyMiddleware, RequestHandler } from 'http-proxy-middleware';
 import { LogProviderCallback } from 'http-proxy-middleware/dist/types';
+import urlJoin from 'url-join';
 
 export interface PortalServerProps {
   listenOpts?: ListenOptions;
@@ -45,6 +46,8 @@ export class PortalServer {
 
   private router: Router;
 
+  private basePath: string;
+
   constructor(props: PortalServerProps) {
     this.debug = props.debug;
     this.listenOpts = props.listenOpts;
@@ -55,9 +58,9 @@ export class PortalServer {
 
     this.router.use(express.static(frontendRoot));
 
-    const basePath = props.webPortalBaseUrl?.pathname || '/';
-
-    this.app.use(basePath, this.router);
+    this.basePath = props.webPortalBaseUrl?.pathname || '/';
+    this.debug('basePath:', this.basePath);
+    this.app.use(this.basePath, this.router);
   }
 
   private proxyLogger: LogProviderCallback = () => {
@@ -111,7 +114,7 @@ export class PortalServer {
 
   public async hostPortal(params: HostPortalParams): Promise<string> {
     this.debug('params.wsUrl', params.wsUrl);
-    const wsProxy = createProxyMiddleware(`/ws/${params.targetId}`, {
+    const wsProxy = createProxyMiddleware(urlJoin(this.basePath, `/ws/${params.targetId}`), {
       target: params.wsUrl,
       logLevel: this.debug.enabled ? 'debug' : 'silent',
       logProvider: this.proxyLogger,

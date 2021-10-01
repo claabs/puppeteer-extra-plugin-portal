@@ -282,7 +282,7 @@ export default class Runner {
   };
 
   setupPuppeteerWorker = () => {
-    this.puppeteerWorker = new Worker('/puppeteer.worker.bundle.js');
+    this.puppeteerWorker = new Worker('./puppeteer.worker.bundle.js');
     // eslint-disable-next-line consistent-return
     this.puppeteerWorker.addEventListener('message', (evt) => {
       const { command, data } = evt.data as Message;

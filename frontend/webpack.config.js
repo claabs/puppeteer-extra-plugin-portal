@@ -40,7 +40,7 @@ const main = {
       title: 'Puppeteer Portal',
       template: path.join(srcDir, 'index.html'),
       hash: true,
-      publicPath: '/',
+      publicPath: './',
     }),
   ],
 };
