@@ -8,7 +8,7 @@ A [puppeteer-extra](https://github.com/berstend/puppeteer-extra) plugin that hos
 
 Here is a demo of the code [below](#usage):
 
-![Remotely and manually solving a captcha in a automated puppeteer browser](assets/portal-demo.mp4)
+https://user-images.githubusercontent.com/6274312/135788752-3b919efa-6b64-4c0b-859a-62cafcf9a7b8.mp4
 
 ## Install
 
