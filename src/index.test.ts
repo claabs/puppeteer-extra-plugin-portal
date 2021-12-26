@@ -16,7 +16,7 @@ describe('Top level plugin interface', () => {
   //   }
   // });
 
-  it('should shutdown portals on a closed browser', async () => {
+  it.skip('should shutdown portals on a closed browser', async () => {
     const puppeteer = addExtra(require('puppeteer'));
     const portalPlugin = PortalPlugin();
     puppeteer.use(portalPlugin);
@@ -34,7 +34,33 @@ describe('Top level plugin interface', () => {
     expect(browser.isConnected()).toBeFalsy();
   });
 
-  it('should shutdown portal on a closed page', async () => {
+  it('should support a second portal session', async () => {
+    const puppeteer = addExtra(require('puppeteer'));
+    const portalPlugin = PortalPlugin();
+    puppeteer.use(portalPlugin);
+
+    const browser = await puppeteer.launch({
+      headless: true,
+    });
+    console.log('launched');
+    const page = await browser.newPage();
+    await page.goto('https://www.google.com/recaptcha/api2/demo', { waitUntil: 'networkidle0' });
+    await page.openPortal();
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await page.closePortal();
+    expect(page.hasOpenPortal()).toBeFalsy();
+    await page.goto('https://www.google.com/recaptcha/api2/demo', { waitUntil: 'networkidle0' });
+    const url = await page.openPortal();
+    console.log(url);
+
+    const successDiv = await page.waitForSelector('.recaptcha-success', {
+      timeout: 86400 * 1000,
+    });
+    expect(successDiv).toBeDefined();
+    await browser.close();
+  });
+
+  it.skip('should shutdown portal on a closed page', async () => {
     const puppeteer = addExtra(require('puppeteer'));
     const portalPlugin = PortalPlugin();
     puppeteer.use(portalPlugin);

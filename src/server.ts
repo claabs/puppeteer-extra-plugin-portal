@@ -105,9 +105,11 @@ export class PortalServer {
 
   private async closeServer(): Promise<void> {
     if (this.server) {
-      this.debug('No more open portals, shutting down the express server..');
+      this.server.on('close', () => {
+        this.debug('The express server has been closed');
+      });
+      this.debug('No more open portals, shutting down the express server...');
       this.server.close();
-      await once(this.server, 'close');
       this.server = undefined;
     }
   }
