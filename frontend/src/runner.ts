@@ -172,6 +172,24 @@ export default class Runner {
     });
   };
 
+  // Forward and back require knowing what the current nagivation entry index is, which is difficult with the current setup.
+  // Leaving it out for now
+  // https://chromedevtools.github.io/devtools-protocol/tot/Page/#method-navigateToHistoryEntry
+  // goBack = (): void => {
+  //   this.puppeteerWorker.postMessage({
+  //     command: ProtocolCommands['Page.navigateToHistoryEntry'],
+  //     data: {
+  //       entryId: 1,
+  //     },
+  //   });
+  // };
+
+  doReload = (): void => {
+    this.puppeteerWorker.postMessage({
+      command: ProtocolCommands['Page.reload'],
+    });
+  };
+
   onScreencastFrame = (data: string) => {
     // console.log('Runner onScreencastFrame. data:', data);
     this.img.onload = () => {
@@ -205,6 +223,13 @@ export default class Runner {
     // this.$verticalResizer.addEventListener('mousedown', this.onVerticalResize);
 
     window.addEventListener('resize', this.resizePage);
+
+    // const backButton = document.getElementById('back-button');
+    // if (backButton) backButton.addEventListener('click', this.goBack, false);
+    // const forwardButton = document.getElementById('forward-button');
+    // if (forwardButton) forwardButton.addEventListener('click', this.goBack, false);
+    const reloadButton = document.getElementById('reload-button');
+    if (reloadButton) reloadButton.addEventListener('click', this.doReload, false);
   };
 
   removeEventListeners = () => {

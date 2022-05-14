@@ -9,7 +9,13 @@
 </head>
 
 <body>
-  <main>
+  <main class="flex-auto widget vbox">
+    <!-- https://github.com/ChromeDevTools/devtools-frontend/blob/ab2c3594fef7e9b8d71a207ad97158fec8d68d82/front_end/panels/screencast/ScreencastView.ts#L655 -->
+    <div class="screencast-navigation">
+      <!-- <button class="back" id="back-button" aria-label="back"></button> -->
+      <!-- <button class="forward" id="forward-button" aria-label="forward"></button> -->
+      <button class="reload" id="reload-button" aria-label="reload"></button>
+    </div>
     <div id="runner">
     </div>
   </main>

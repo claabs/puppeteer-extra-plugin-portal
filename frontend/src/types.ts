@@ -2,6 +2,8 @@
 export enum ProtocolCommands {
   'Input.dispatchKeyEvent' = 'Input.dispatchKeyEvent',
   'Input.emulateTouchFromMouseEvent' = 'Input.emulateTouchFromMouseEvent',
+  'Page.reload' = 'Page.reload',
+  'Page.navigateToHistoryEntry' = 'Page.navigateToHistoryEntry',
 }
 
 export enum HostCommands {

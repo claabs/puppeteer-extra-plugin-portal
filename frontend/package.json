@@ -1,6 +1,6 @@
 {
   "name": "puppeteer-extra-plugin-portal-frontend",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "",
   "main": "src/index.ts",
   "scripts": {
@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "css-loader": "^5.2.6",
+    "file-loader": "^6.2.0",
     "html-webpack-plugin": "^5.3.1",
     "path-browserify": "^1.0.1",
     "rimraf": "^3.0.2",

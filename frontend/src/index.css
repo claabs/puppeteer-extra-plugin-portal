@@ -4,117 +4,266 @@
 */
 
 * {
-    font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
-  }
-  
-  html, body, div, span, applet, object, iframe,
-  h1, h2, h3, h4, h5, h6, p, blockquote, pre,
-  a, abbr, acronym, address, big, cite, code,
-  del, dfn, em, img, ins, kbd, q, s, samp,
-  small, strike, strong, sub, sup, tt, var,
-  b, u, i, center,
-  dl, dt, dd, ol, ul, li,
-  fieldset, form, label, legend,
-  table, caption, tbody, tfoot, thead, tr, th, td,
-  article, aside, canvas, details, embed, 
-  figure, figcaption, footer, header, hgroup, 
-  menu, nav, output, ruby, section, summary,
-  time, mark, audio, video {
-    margin: 0;
-    padding: 0;
-    border: 0;
-    font-size: 100%;
-    font: inherit;
-    vertical-align: baseline;
-  }
-  /* HTML5 display-role reset for older browsers */
-  article, aside, details, figcaption, figure, 
-  footer, header, hgroup, menu, nav, section {
-    display: block;
-  }
-  body {
-    line-height: 1;
-  }
-  ol, ul {
-    list-style: none;
-  }
-  blockquote, q {
-    quotes: none;
-  }
-  blockquote:before, blockquote:after,
-  q:before, q:after {
-    content: '';
-    content: none;
-  }
-  table {
-    border-collapse: collapse;
-    border-spacing: 0;
-  }
-  
-  html {
-    color: #ccc;
-    height: 100%;
-    width: 100%;
-    top: 0;
-    left: 0;
-    position: fixed;
-  }
-  
-  body {
-    width: 100%;
-    height: 100%;
-    border: 0;
-    background: rgb(21, 21, 21);
-    display: flex;
-    flex-direction: column;
-  }
-  
-  
-  
-  header {
-    height: 50px;
-    padding: 10px 30px;
-    border-bottom: 1px solid #333;
-    display: flex;
-    justify-content: space-between;
-    flex-shrink: initial;
-    align-items: center;
-  }
-  
-  header .group {
-    display: flex;
-    align-items: center;
-  }
-  
-  header .group > * {
-    margin-left: 10px;
-  }
-  
-  header .group > *:not(:last-child) {
-    margin-right: 10px;
-  }
-  
-  main {
-    display: flex;
-    flex: 1;
-    flex-direction: row;
-  }
-  
+  font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
+}
 
-  #runner {
-    position: relative;
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-  }
-  
-  #viewer, #devtools {
-    display: flex;
-    flex: 1;
-  }
-  
-  #devtools iframe {
-    border: none;
-    overflow: hidden;
-    width: 100%;
-  }
+html,
+body,
+div,
+span,
+applet,
+object,
+iframe,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+blockquote,
+pre,
+a,
+abbr,
+acronym,
+address,
+big,
+cite,
+code,
+del,
+dfn,
+em,
+img,
+ins,
+kbd,
+q,
+s,
+samp,
+small,
+strike,
+strong,
+sub,
+sup,
+tt,
+var,
+b,
+u,
+i,
+center,
+dl,
+dt,
+dd,
+ol,
+ul,
+li,
+fieldset,
+form,
+label,
+legend,
+table,
+caption,
+tbody,
+tfoot,
+thead,
+tr,
+th,
+td,
+article,
+aside,
+canvas,
+details,
+embed,
+figure,
+figcaption,
+footer,
+header,
+hgroup,
+menu,
+nav,
+output,
+ruby,
+section,
+summary,
+time,
+mark,
+audio,
+video {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 100%;
+  font: inherit;
+  vertical-align: baseline;
+}
+
+/* HTML5 display-role reset for older browsers */
+article,
+aside,
+details,
+figcaption,
+figure,
+footer,
+header,
+hgroup,
+menu,
+nav,
+section {
+  display: block;
+}
+
+body {
+  line-height: 1;
+}
+
+ol,
+ul {
+  list-style: none;
+}
+
+blockquote,
+q {
+  quotes: none;
+}
+
+blockquote:before,
+blockquote:after,
+q:before,
+q:after {
+  content: '';
+  content: none;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+html {
+  color: #ccc;
+  height: 100%;
+  width: 100%;
+  top: 0;
+  left: 0;
+  position: fixed;
+}
+
+body {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: rgb(21, 21, 21);
+  display: flex;
+  flex-direction: column;
+}
+
+
+
+header {
+  height: 50px;
+  padding: 10px 30px;
+  border-bottom: 1px solid #333;
+  display: flex;
+  justify-content: space-between;
+  flex-shrink: initial;
+  align-items: center;
+}
+
+header .group {
+  display: flex;
+  align-items: center;
+}
+
+header .group>* {
+  margin-left: 10px;
+}
+
+header .group>*:not(:last-child) {
+  margin-right: 10px;
+}
+
+main {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+}
+
+
+#runner {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+#viewer,
+#devtools {
+  display: flex;
+  flex: 1;
+}
+
+#devtools iframe {
+  border: none;
+  overflow: hidden;
+  width: 100%;
+}
+
+/* https://github.com/ChromeDevTools/devtools-frontend/blob/ca17a55104e6baf8d4ab360b484111bfa93c9b7f/front_end/panels/screencast/screencastView.css#L35 */
+.flex-auto {
+  flex: auto;
+}
+
+.vbox {
+  display: flex;
+  flex-direction: column !important;
+  position: relative;
+}
+
+.widget {
+  position: relative;
+  flex: auto;
+  contain: style;
+}
+
+.screencast-navigation {
+  flex-direction: row;
+  display: flex;
+  flex: 24px 0 0;
+  position: relative;
+  padding-left: 1px;
+  background-origin: padding-box;
+  background-clip: padding-box;
+}
+
+.screencast-navigation button {
+  border-radius: 2px;
+  background-color: transparent;
+  background-image: url('img/navigationControls.png');
+  background-clip: content-box;
+  background-origin: content-box;
+  background-repeat: no-repeat;
+  border: 1px solid transparent;
+  height: 23px;
+  padding: 2px;
+  width: 23px;
+}
+
+.screencast-navigation button:hover,
+.screencast-navigation button:focus {
+  border-color: rgb(17, 119, 187);
+}
+
+.screencast-navigation button:active {
+  border-color: rgb(200, 200, 200);
+}
+
+.screencast-navigation button.back {
+  background-position-x: -1px;
+}
+
+.screencast-navigation button.forward {
+  background-position-x: -18px;
+}
+
+.screencast-navigation button.reload {
+  background-position-x: -37px;
+}
