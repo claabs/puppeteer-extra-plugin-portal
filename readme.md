@@ -2,7 +2,7 @@
 
  [![npm](https://img.shields.io/npm/v/puppeteer-extra-plugin-portal.svg)](https://www.npmjs.com/package/puppeteer-extra-plugin-portal) [![npm](https://img.shields.io/npm/dt/puppeteer-extra-plugin-portal.svg)](https://www.npmjs.com/package/puppeteer-extra-plugin-portal) [![npm](https://img.shields.io/npm/l/puppeteer-extra-plugin-portal.svg)](https://www.npmjs.com/package/puppeteer-extra)
 
-A [puppeteer-extra](https://github.com/berstend/puppeteer-extra) plugin that hosts a webserver to remotely view puppeteer sessions. Essentially opening a "portal" to the page.
+A [puppeteer-extra](https://github.com/berstend/puppeteer-extra) plugin to remotely view and interact with puppeteer sessions. Essentially opening a "portal" to the page.
 
 ## Demo
 
