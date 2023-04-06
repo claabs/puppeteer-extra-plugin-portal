@@ -49,34 +49,4 @@ const main = {
   ],
 };
 
-const worker = {
-  target: 'webworker',
-  mode: 'development',
-  devtool: 'inline-source-map',
-  entry: {
-    'puppeteer.worker': path.join(srcDir, 'puppeteer.worker.ts'),
-  },
-  resolve: {
-    fallback: {
-      path: require.resolve('path-browserify'),
-      fs: false,
-    },
-    extensions: ['.ts', '.js'],
-  },
-  output: {
-    globalObject: 'self',
-    filename: '[name].bundle.js',
-    path: outputDir,
-  },
-  module: {
-    rules: [
-      {
-        test: /\.ts?$/,
-        use: 'ts-loader',
-        exclude: /node_modules/,
-      },
-    ],
-  },
-};
-
-module.exports = [main, worker];
+module.exports = [main];

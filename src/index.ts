@@ -52,10 +52,8 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
 
   public async openPortal(page: Page): Promise<string> {
     const targetId = getPageTargetId(page);
-    const browser = page.browser();
-    const wsUrl = browser.wsEndpoint();
     const url = await this.portalServer.hostPortal({
-      wsUrl,
+      page,
       targetId,
     });
     return url;

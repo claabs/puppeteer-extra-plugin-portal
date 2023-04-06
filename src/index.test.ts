@@ -1,6 +1,16 @@
 /* eslint-disable no-console */
 import { addExtra } from 'puppeteer-extra';
+import { Page } from 'puppeteer';
+import open from 'open';
 import PortalPlugin from './index';
+
+function getDevtoolsUrl(page: Page): string {
+  // eslint-disable-next-line no-underscore-dangle,@typescript-eslint/no-explicit-any
+  const targetId: string = (page.target() as any)._targetId;
+  const wsEndpoint = new URL(page.browser().wsEndpoint());
+  // devtools://devtools/bundled/inspector.html?ws=127.0.0.1:35871/devtools/page/2B4E5714B42640A1C61AB9EE7E432730
+  return `devtools://devtools/bundled/inspector.html?ws=${wsEndpoint.host}/devtools/page/${targetId}`;
+}
 
 jest.setTimeout(86400 * 1000);
 describe('Top level plugin interface', () => {
@@ -91,6 +101,7 @@ describe('Top level plugin interface', () => {
     await page.goto('https://www.google.com/recaptcha/api2/demo', { waitUntil: 'networkidle0' });
     const url = await page.openPortal();
     console.log(url);
+    open(url);
 
     const successDiv = await page.waitForSelector('.recaptcha-success', {
       timeout: 86400 * 1000,

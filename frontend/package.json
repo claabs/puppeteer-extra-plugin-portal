@@ -8,18 +8,16 @@
   },
   "author": "",
   "license": "MIT",
-  "dependencies": {
-    "puppeteer-core": "^10.0.0"
-  },
   "devDependencies": {
+    "@types/chrome-remote-interface": "^0.31.9",
     "css-loader": "^5.2.6",
+    "devtools-protocol": "^0.0.1124027",
     "file-loader": "^6.2.0",
-    "html-webpack-plugin": "^5.3.1",
-    "path-browserify": "^1.0.1",
+    "html-webpack-plugin": "^5.5.0",
     "rimraf": "^3.0.2",
     "style-loader": "^2.0.0",
     "ts-loader": "^9.2.2",
-    "webpack": "^5.38.1",
+    "webpack": "^5.77.0",
     "webpack-cli": "^4.7.0",
     "worker-loader": "^3.0.8"
   }

@@ -1,7 +1,12 @@
+// eslint-disable-next-line import/no-unresolved
+import Protocol from 'devtools-protocol';
 import { debounce, once } from './util';
-import { getConnectURL, getTargetId } from './api';
+import { getConnectURL } from './api';
 
-import { ProtocolCommands, HostCommands, Message, WorkerCommands } from './types';
+export type CommandResponse = {
+  command: 'Page.screencastFrame';
+  data: Protocol.Page.ScreencastFrameEvent;
+};
 
 const runnerHTML = `
 <div id="viewer">
@@ -18,7 +23,7 @@ interface RunnerParams {
 }
 
 export default class Runner {
-  private puppeteerWorker!: Worker;
+  private wsClient!: WebSocket;
 
   private readonly onClose: RunnerParams['onClose'];
 
@@ -48,16 +53,16 @@ export default class Runner {
     this.$mount = $mount;
     this.onClose = onClose;
 
-    this.setupPuppeteerWorker();
+    this.setupWebSocket();
   }
 
-  onVerticalResize = (evt: MouseEvent) => {
+  onVerticalResize = (evt: MouseEvent): void => {
     evt.preventDefault();
 
     this.$mount.style.pointerEvents = 'none';
     this.$viewer.style.flex = 'initial';
 
-    let onMouseMove: any = (moveEvent: MouseEvent) => {
+    let onMouseMove: ((moveEvent: MouseEvent) => void) | null = (moveEvent: MouseEvent) => {
       if (moveEvent.buttons === 0) {
         return;
       }
@@ -66,10 +71,10 @@ export default class Runner {
       this.$canvas.height = moveEvent.clientY - 71;
     };
 
-    let onMouseUp: any = () => {
+    let onMouseUp: (() => void) | null = (): void => {
       this.$mount.style.pointerEvents = 'initial';
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
+      if (onMouseMove) document.removeEventListener('mousemove', onMouseMove);
+      if (onMouseUp) document.removeEventListener('mouseup', onMouseUp);
       onMouseMove = null;
       onMouseUp = null;
       this.resizePage();
@@ -79,7 +84,7 @@ export default class Runner {
     document.addEventListener('mouseup', onMouseUp);
   };
 
-  emitMouse = (evt: any) => {
+  emitMouse = (evt: any): void => {
     const buttons: any = { 0: 'none', 1: 'left', 2: 'middle', 3: 'right' };
     const event: any = evt.type === 'mousewheel' ? window.event || evt : evt;
     const types: any = {
@@ -109,7 +114,7 @@ export default class Runner {
     const x = isScroll ? event.clientX : event.offsetX;
     const y = isScroll ? event.clientY : event.offsetY;
 
-    const data: Record<string, any> = {
+    const params: Protocol.Input.EmulateTouchFromMouseEventRequest = {
       type: types[event.type],
       x,
       y,
@@ -119,18 +124,20 @@ export default class Runner {
     };
 
     if (event.type === 'mousewheel') {
-      data.deltaX = event.wheelDeltaX || 0;
-      data.deltaY = event.wheelDeltaY || event.wheelDelta;
+      params.deltaX = event.wheelDeltaX || 0;
+      params.deltaY = event.wheelDeltaY || event.wheelDelta;
     }
-
-    this.puppeteerWorker.postMessage({
-      command: ProtocolCommands['Input.emulateTouchFromMouseEvent'],
-      data,
-    });
+    console.log('Mouse event', params);
+    this.wsClient.send(
+      JSON.stringify({
+        command: 'Input.emulateTouchFromMouseEvent',
+        params,
+      })
+    );
   };
 
-  emitKeyEvent = (event: KeyboardEvent) => {
-    let type;
+  emitKeyEvent = (event: KeyboardEvent): void => {
+    let type: Protocol.Input.DispatchKeyEventRequestType;
 
     // Prevent backspace from going back in history
     if (event.keyCode === 8) {
@@ -139,20 +146,20 @@ export default class Runner {
 
     switch (event.type) {
       case 'keydown':
-        type = 'keyDown';
+        type = Protocol.Input.DispatchKeyEventRequestType.KeyDown;
         break;
       case 'keyup':
-        type = 'keyUp';
+        type = Protocol.Input.DispatchKeyEventRequestType.KeyUp;
         break;
       case 'keypress':
-        type = 'char';
+        type = Protocol.Input.DispatchKeyEventRequestType.Char;
         break;
       default:
         return;
     }
 
     const text = type === 'char' ? String.fromCharCode(event.charCode) : undefined;
-    const data = {
+    const params: Protocol.Input.DispatchKeyEventRequest = {
       type,
       text,
       unmodifiedText: text ? text.toLowerCase() : undefined,
@@ -166,52 +173,53 @@ export default class Runner {
       isSystemKey: false,
     };
 
-    this.puppeteerWorker.postMessage({
-      command: ProtocolCommands['Input.dispatchKeyEvent'],
-      data,
-    });
+    this.wsClient.send(
+      JSON.stringify({
+        command: 'Input.dispatchKeyEvent',
+        params,
+      })
+    );
   };
-
-  // Forward and back require knowing what the current nagivation entry index is, which is difficult with the current setup.
-  // Leaving it out for now
-  // https://chromedevtools.github.io/devtools-protocol/tot/Page/#method-navigateToHistoryEntry
-  // goBack = (): void => {
-  //   this.puppeteerWorker.postMessage({
-  //     command: ProtocolCommands['Page.navigateToHistoryEntry'],
-  //     data: {
-  //       entryId: 1,
-  //     },
-  //   });
-  // };
 
   doReload = (): void => {
-    this.puppeteerWorker.postMessage({
-      command: ProtocolCommands['Page.reload'],
-    });
+    this.wsClient.send(
+      JSON.stringify({
+        command: 'Page.reload',
+        params: {},
+      })
+    );
   };
 
-  onScreencastFrame = (data: string) => {
+  onScreencastFrame = (data: Protocol.Page.ScreencastFrameEvent): void => {
     // console.log('Runner onScreencastFrame. data:', data);
     this.img.onload = () => {
       console.log('Runner onScreencastFrame onload, ctx:', this.ctx);
       this.ctx.drawImage(this.img, 0, 0, this.$canvas.width, this.$canvas.height);
     };
-    this.img.src = `data:image/png;base64,${data}`;
+    this.img.src = `data:image/png;base64,${data.data}`;
+    this.wsClient.send(
+      JSON.stringify({
+        command: 'Page.screencastFrameAck',
+        params: {
+          sessionId: data.sessionId,
+        } as Protocol.Page.ScreencastFrameAckRequest,
+      })
+    );
   };
 
-  bindKeyEvents = () => {
+  bindKeyEvents = (): void => {
     document.body.addEventListener('keydown', this.emitKeyEvent, true);
     document.body.addEventListener('keyup', this.emitKeyEvent, true);
     document.body.addEventListener('keypress', this.emitKeyEvent, true);
   };
 
-  unbindKeyEvents = () => {
+  unbindKeyEvents = (): void => {
     document.body.removeEventListener('keydown', this.emitKeyEvent, true);
     document.body.removeEventListener('keyup', this.emitKeyEvent, true);
     document.body.removeEventListener('keypress', this.emitKeyEvent, true);
   };
 
-  addListeners = () => {
+  addListeners = (): void => {
     this.$canvas.addEventListener('mousedown', this.emitMouse, false);
     this.$canvas.addEventListener('mouseup', this.emitMouse, false);
     this.$canvas.addEventListener('mousewheel', this.emitMouse, false);
@@ -232,7 +240,7 @@ export default class Runner {
     if (reloadButton) reloadButton.addEventListener('click', this.doReload, false);
   };
 
-  removeEventListeners = () => {
+  removeEventListeners = (): void => {
     if (!this.started) return;
     this.$canvas.removeEventListener('mousedown', this.emitMouse, false);
     this.$canvas.removeEventListener('mouseup', this.emitMouse, false);
@@ -247,25 +255,32 @@ export default class Runner {
     window.removeEventListener('resize', this.resizePage);
   };
 
-  resizePage = debounce(() => {
-    const { width, height } = this.$viewer.getBoundingClientRect();
+  resizePage = debounce(
+    () => {
+      const { width, height } = this.$viewer.getBoundingClientRect();
 
-    this.$canvas.width = width;
-    this.$canvas.height = height;
+      this.$canvas.width = width;
+      this.$canvas.height = height;
 
-    this.sendWorkerMessage({
-      command: 'setViewport',
-      data: {
-        width: Math.floor(width),
-        height: Math.floor(height),
-        deviceScaleFactor: 1,
-      },
-    });
-  }, 500);
+      this.wsClient.send(
+        JSON.stringify({
+          command: 'Page.setViewport',
+          params: {
+            width: Math.floor(width),
+            height: Math.floor(height),
+            deviceScaleFactor: 1,
+            mobile: true,
+          } as Protocol.Page.SetDeviceMetricsOverrideRequest,
+        })
+      );
+    },
+    500,
+    { isImmediate: true }
+  );
 
   close = once((...args: any[]) => {
     this.onClose(...args);
-    this.sendWorkerMessage({ command: HostCommands.close, data: null });
+    this.wsClient.close();
     this.removeEventListeners();
     this.unbindKeyEvents();
   });
@@ -274,24 +289,7 @@ export default class Runner {
     this.$mount.innerHTML = `${errorHTML(err)}`;
   };
 
-  // onRunComplete = async ({ url, payload }: { url: string; payload: any }) => {};
-
-  sendWorkerMessage = (message: Message) => {
-    this.puppeteerWorker.postMessage(message);
-  };
-
-  // onIframeLoad = () => {
-  //   this.$iframe.removeEventListener('load', this.onIframeLoad);
-  //   this.sendWorkerMessage({
-  //     command: HostCommands.run,
-  //     data: {},
-  //   });
-  // };
-
-  onWorkerSetupComplete = (payload: Message['data']) => {
-    const { targetId } = payload;
-    // const iframeURL = getDevtoolsAppURL(targetId);
-
+  onWebSocketSetupComplete = () => {
     this.started = true;
     this.$mount.innerHTML = runnerHTML;
     // this.$iframe = document.querySelector('#devtools-mount') as HTMLIFrameElement;
@@ -304,47 +302,41 @@ export default class Runner {
 
     this.addListeners();
     this.resizePage();
+
+    const params: Protocol.Page.StartScreencastRequest = {
+      format: 'jpeg',
+      quality: 100,
+      everyNthFrame: 1,
+    };
+    this.wsClient.send(
+      JSON.stringify({
+        command: 'Page.startScreencast',
+        params,
+      })
+    );
   };
 
-  setupPuppeteerWorker = () => {
-    this.puppeteerWorker = new Worker('./puppeteer.worker.bundle.js');
-    // eslint-disable-next-line consistent-return
-    this.puppeteerWorker.addEventListener('message', (evt) => {
-      const { command, data } = evt.data as Message;
+  setupWebSocket = (): void => {
+    this.wsClient = new WebSocket(getConnectURL());
 
-      if (command === WorkerCommands.startComplete) {
-        return this.onWorkerSetupComplete(data);
-      }
-
-      if (command === WorkerCommands.screencastFrame) {
-        return this.onScreencastFrame(data);
-      }
-
-      // if (command === WorkerCommands.runComplete) {
-      //   return this.onRunComplete(data);
-      // }
-
-      if (command === WorkerCommands.error) {
-        return this.showError(data);
-      }
-
-      if (command === WorkerCommands.browserClose) {
-        return this.showError(`Session complete! Browser has closed.`);
-      }
+    this.wsClient.addEventListener('message', async (evt) => {
+      const text = await evt.data.text();
+      const { data } = JSON.parse(text) as CommandResponse;
+      console.log('Websocket message received');
+      this.onScreencastFrame(data);
     });
 
-    this.puppeteerWorker.addEventListener('error', ({ message }) => {
-      this.puppeteerWorker.terminate();
-      return this.showError(`Error communicating with puppeteer-worker ${message}`);
+    this.wsClient.addEventListener('open', (e) => {
+      console.log('Websocket opened');
+      this.onWebSocketSetupComplete();
     });
 
-    this.sendWorkerMessage({
-      command: 'start',
-      data: {
-        browserWSEndpoint: getConnectURL(),
-        quality: 100,
-        targetId: getTargetId(),
-      },
+    this.wsClient.addEventListener('error', (e) => {
+      this.showError(`Error communicating with websocket server ${e}`);
+    });
+
+    this.wsClient.addEventListener('close', (e) => {
+      this.showError(`Session complete! Browser has closed.`);
     });
   };
 }
