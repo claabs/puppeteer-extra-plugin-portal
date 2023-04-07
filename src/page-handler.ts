@@ -85,8 +85,9 @@ export class PageHandler {
     ws.on('error', this.onError.bind(this));
   }
 
-  public getWs(): WebSocket | undefined {
-    return this.ws;
+  public async close(): Promise<void> {
+    if (this.ws) this.ws.close();
+    if (this.cdpSession) await this.cdpSession.detach();
   }
 
   private async getCdpSession(): Promise<CDPSession> {

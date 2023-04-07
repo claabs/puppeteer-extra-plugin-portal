@@ -127,8 +127,8 @@ export class PortalServer {
 
   public async closePortal(targetId: string): Promise<void> {
     this.debug(`Closing portal for targetId "${targetId}"`);
-    const ws = this.targetIdPageHandlerMap.get(targetId)?.getWs();
-    if (ws) ws.close();
+    const handler = this.targetIdPageHandlerMap.get(targetId);
+    if (handler) await handler.close();
     this.targetIdPageHandlerMap.delete(targetId);
     if (this.targetIdPageHandlerMap.size === 0) this.closeServer();
   }
