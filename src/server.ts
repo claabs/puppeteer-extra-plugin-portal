@@ -58,12 +58,15 @@ export class PortalServer {
 
   private portalMiddleware: express.RequestHandler = async (req, res, next) => {
     try {
-      this.debug('Creating new WebSocket server');
-      const wsServer = new WebSocketServer({ noServer: true });
       const upgradeHeader = (req.headers.upgrade || '').split(',').map((s) => s.trim());
+      this.debug('Detected websocket upgrade header');
       if (upgradeHeader.indexOf('websocket') === 0) {
-        this.debug('Detected websocket upgrade header');
-        await this.upgradeHandler(req, wsServer);
+        if (!this.wsServer) {
+          this.debug('Creating new WebSocket server');
+          this.wsServer = new WebSocketServer({ noServer: true });
+        }
+        await this.upgradeHandler(req, this.wsServer);
+        return undefined;
       }
       return next();
     } catch (err) {
@@ -90,6 +93,7 @@ export class PortalServer {
           if (!pageHandler) throw new Error('Could not find matching page handler for target ID');
           pageHandler.setWs(ws);
           wsServer.emit('connection', ws, req);
+          this.debug('Emitted connection for target %s', targetId);
           resolve();
         } catch (err) {
           reject(err);
@@ -110,7 +114,6 @@ export class PortalServer {
         // Otherwise, we just use `http`. This is pretty much the first half of `app.listen()`
         this.server = http.createServer(app);
       }
-      this.wsServer = new WebSocketServer({ noServer: true });
       this.server = app.listen(this.listenOpts);
       await once(this.server, 'listening');
       this.debug('Express server now listening');
