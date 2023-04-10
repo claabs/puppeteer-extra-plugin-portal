@@ -87,8 +87,13 @@ export class PageHandler {
   }
 
   public async close(): Promise<void> {
-    if (this.ws) this.ws.close();
-    if (this.cdpSession) await this.cdpSession.detach();
+    this.debug('Closing websocket');
+    try {
+      if (this.ws) this.ws.close();
+      if (this.cdpSession) await this.cdpSession.detach();
+    } catch (err) {
+      this.debug(err);
+    }
   }
 
   private async getCdpSession(): Promise<CDPSession> {
