@@ -1,7 +1,7 @@
-import express, { Router } from 'express';
+import express from 'express';
 import http, { Server } from 'http';
 import path from 'path';
-import type { ListenOptions, Socket } from 'net';
+import type { ListenOptions } from 'net';
 import https, { ServerOptions } from 'https';
 import { once } from 'events';
 import { URL } from 'url';
@@ -40,61 +40,80 @@ export class PortalServer {
 
   private webPortalBaseUrl: URL;
 
-  private app: express.Express;
-
   private debug: debug.Debugger;
 
-  private router: Router;
-
   private basePath: string;
+
+  private isMiddleware = false;
 
   constructor(props: PortalServerProps) {
     this.debug = props.debug;
     this.listenOpts = props.listenOpts;
     this.serverOpts = props.serverOpts || {};
     this.webPortalBaseUrl = props.webPortalBaseUrl;
-    this.app = express();
-    this.router = express.Router();
-
-    this.router.use(express.static(frontendRoot));
 
     this.basePath = props.webPortalBaseUrl?.pathname || '/';
     this.debug('basePath:', this.basePath);
-    this.app.use(this.basePath, this.router);
   }
 
-  private upgradeHandler(req: express.Request, socket: Socket, head: Buffer): void {
-    if (this.wsServer) {
-      this.wsServer.handleUpgrade(req, socket, head, (ws, request) => {
-        if (!request.url) throw new Error('Websocket request lacks URL');
-        const url = new URL(request.url);
-        const targetId = url.pathname.split('/').slice(-1)[0];
-        if (!targetId) throw new Error(`Could not find targetId in upgrade request`);
-        const pageHandler = this.targetIdPageHandlerMap.get(targetId);
-        if (!pageHandler) throw new Error('Could not find matching page handler for target ID');
-        pageHandler.setWs(ws);
-        this.wsServer?.emit('connection', ws, req);
-      });
-    } else {
-      this.debug(`No WebSocket server found when upgrading`);
+  private portalMiddleware: express.RequestHandler = async (req, res, next) => {
+    try {
+      this.debug('Creating new WebSocket server');
+      const wsServer = new WebSocketServer({ noServer: true });
+      const upgradeHeader = (req.headers.upgrade || '').split(',').map((s) => s.trim());
+      if (upgradeHeader.indexOf('websocket') === 0) {
+        this.debug('Detected websocket upgrade header');
+        await this.upgradeHandler(req, wsServer);
+      }
+      return next();
+    } catch (err) {
+      return next(err);
     }
+  };
+
+  private middlewareHandlers = [express.static(frontendRoot), this.portalMiddleware];
+
+  public createPortalMiddleware(): express.RequestHandler[] {
+    this.isMiddleware = true;
+    return this.middlewareHandlers;
+  }
+
+  private upgradeHandler(req: http.IncomingMessage, wsServer: WebSocketServer): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      wsServer.handleUpgrade(req, req.socket, Buffer.alloc(0), (ws, request) => {
+        try {
+          this.debug('In wsServer handleUpgrade');
+          if (!request.url) throw new Error('Websocket request lacks URL');
+          const targetId = request.url.split('/').slice(-1)[0];
+          if (!targetId) throw new Error(`Could not find targetId in upgrade request`);
+          const pageHandler = this.targetIdPageHandlerMap.get(targetId);
+          if (!pageHandler) throw new Error('Could not find matching page handler for target ID');
+          pageHandler.setWs(ws);
+          wsServer.emit('connection', ws, req);
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
   }
 
   private async openServer(): Promise<void> {
     if (!this.server) {
       this.debug('Starting the express server...');
+      const app = express();
+      app.use(this.basePath, this.middlewareHandlers);
       if (Object.entries(this.serverOpts).length > 0) {
         // The serverOpts are mostly HTTPS-related options, so use `https` if there's any options set
-        this.server = https.createServer(this.serverOpts, this.app);
+        this.server = https.createServer(this.serverOpts, app);
       } else {
-        // Otherwise, we just use `http`. This is pretty much the first half of `this.app.listen()`
-        this.server = http.createServer(this.app);
+        // Otherwise, we just use `http`. This is pretty much the first half of `app.listen()`
+        this.server = http.createServer(app);
       }
       this.wsServer = new WebSocketServer({ noServer: true });
-      this.server = this.app.listen(this.listenOpts);
+      this.server = app.listen(this.listenOpts);
       await once(this.server, 'listening');
       this.debug('Express server now listening');
-      this.server.on('upgrade', this.upgradeHandler.bind(this));
     }
   }
 
@@ -110,7 +129,7 @@ export class PortalServer {
   }
 
   public async hostPortal(params: HostPortalParams): Promise<string> {
-    if (this.targetIdPageHandlerMap.size === 0) {
+    if (this.targetIdPageHandlerMap.size === 0 && !this.isMiddleware) {
       await this.openServer();
     }
     const pageHandler = new PageHandler({
@@ -130,7 +149,9 @@ export class PortalServer {
     const handler = this.targetIdPageHandlerMap.get(targetId);
     if (handler) await handler.close();
     this.targetIdPageHandlerMap.delete(targetId);
-    if (this.targetIdPageHandlerMap.size === 0) this.closeServer();
+    if (this.targetIdPageHandlerMap.size === 0 && !this.isMiddleware) {
+      this.closeServer();
+    }
   }
 
   public hasOpenPortal(targetId: string): boolean {

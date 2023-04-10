@@ -4,6 +4,7 @@ import { PuppeteerExtraPlugin } from 'puppeteer-extra-plugin';
 
 import type { Browser, Page } from 'puppeteer';
 import { URL } from 'url';
+import { RequestHandler } from 'express';
 import * as types from './types';
 import { PortalServer } from './server';
 
@@ -23,6 +24,8 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
 
   private portalServer: PortalServer;
 
+  public createExpressMiddleware: () => RequestHandler[];
+
   constructor(opts?: Partial<types.PluginOptions>) {
     super(opts);
     this.debug('Initialized', this.opts);
@@ -33,6 +36,7 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
       listenOpts: (this.opts as types.PluginOptions).webPortalConfig?.listenOpts,
       serverOpts: (this.opts as types.PluginOptions).webPortalConfig?.serverOpts,
     });
+    this.createExpressMiddleware = this.portalServer.createPortalMiddleware;
   }
 
   public get name(): string {

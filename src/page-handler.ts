@@ -86,6 +86,7 @@ export class PageHandler {
   }
 
   public async close(): Promise<void> {
+    this.debug('Closing websocket');
     if (this.ws) this.ws.close();
     if (this.cdpSession) await this.cdpSession.detach();
   }
