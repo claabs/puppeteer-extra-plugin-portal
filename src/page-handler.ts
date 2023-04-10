@@ -80,6 +80,7 @@ export class PageHandler {
   }
 
   public setWs(ws: WebSocket): void {
+    this.debug('Setting websocket');
     this.ws = ws;
     ws.on('message', this.messageHandler.bind(this));
     ws.on('error', this.onError.bind(this));

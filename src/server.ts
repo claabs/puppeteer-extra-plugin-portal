@@ -67,8 +67,7 @@ export class PortalServer {
     if (this.wsServer) {
       this.wsServer.handleUpgrade(req, socket, head, (ws, request) => {
         if (!request.url) throw new Error('Websocket request lacks URL');
-        const url = new URL(request.url);
-        const targetId = url.pathname.split('/').slice(-1)[0];
+        const targetId = request.url.split('/').slice(-1)[0];
         if (!targetId) throw new Error(`Could not find targetId in upgrade request`);
         const pageHandler = this.targetIdPageHandlerMap.get(targetId);
         if (!pageHandler) throw new Error('Could not find matching page handler for target ID');
