@@ -21,7 +21,7 @@
     "prebuild": "run-s clean",
     "build": "run-s build:tsc build:rollup ambient-dts build:frontend",
     "build:tsc": "tsc --project types.tsconfig.json",
-    "build:rollup": "rollup -c rollup.config.ts",
+    "build:rollup": "rollup -c rollup.config.ts --configPlugin typescript",
     "build:frontend": "(cd frontend && npm run build)",
     "docs": "node -e 0",
     "serve": "(cd src/frontend && npm run build) && ts-node src/server.ts",
@@ -36,7 +36,7 @@
     "ambient-dts-fix-path": "replace-in-files --string='/// <reference path=\"../src/' --replacement='/// <reference path=\"../dist/' 'dist/**/*.d.ts'"
   },
   "engines": {
-    "node": ">=9.11.2"
+    "node": ">=14"
   },
   "keywords": [
     "puppeteer",
@@ -49,6 +49,7 @@
     "control"
   ],
   "devDependencies": {
+    "@rollup/plugin-html": "^1.0.2",
     "@rollup/plugin-node-resolve": "^15.0.2",
     "@rollup/plugin-typescript": "^11.1.0",
     "@tsconfig/node14": "^1.0.3",
@@ -76,9 +77,7 @@
     "puppeteer-extra": "^3.3.6",
     "replace-in-files-cli": "^2.0.0",
     "rimraf": "^4.4.1",
-    "rollup": "^2.79.1",
-    "rollup-plugin-dts": "^5.3.0",
-    "rollup-plugin-sourcemaps": "^0.6.3",
+    "rollup": "^3.20.2",
     "ts-jest": "^29.1.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.4"

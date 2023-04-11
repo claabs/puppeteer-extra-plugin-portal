@@ -1,10 +1,10 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import resolve from '@rollup/plugin-node-resolve';
-import sourceMaps from 'rollup-plugin-sourcemaps';
 import typescript from '@rollup/plugin-typescript';
+import fs from 'fs';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const pkg = require('./package.json');
+const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
 
 const entryFile = 'index';
 const banner = `
@@ -53,7 +53,5 @@ export default {
     // which external modules to include in the bundle
     // https://github.com/rollup/rollup-plugin-node-resolve#usage
     resolve(),
-    // Resolve source maps to the original source
-    sourceMaps(),
   ],
 };
