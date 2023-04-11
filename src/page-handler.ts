@@ -79,6 +79,19 @@ export class PageHandler {
     this.debug('Created pageHandler');
   }
 
+  private async safeFn<T>(fn: () => T): Promise<T | void> {
+    try {
+      return await fn();
+    } catch (err) {
+      if (err instanceof Error) {
+        this.debug(err.message);
+      } else {
+        this.debug(err);
+      }
+      return undefined;
+    }
+  }
+
   public setWs(ws: WebSocket): void {
     this.debug('Setting websocket');
     this.ws = ws;
@@ -88,12 +101,8 @@ export class PageHandler {
 
   public async close(): Promise<void> {
     this.debug('Closing websocket');
-    try {
-      if (this.ws) this.ws.close();
-      if (this.cdpSession) await this.cdpSession.detach();
-    } catch (err) {
-      this.debug(err);
-    }
+    if (this.ws) this.ws.close();
+    if (this.cdpSession) await this.safeFn(() => this.cdpSession?.detach());
   }
 
   private async getCdpSession(): Promise<CDPSession> {
@@ -124,12 +133,12 @@ export class PageHandler {
   }
 
   private async setViewPort(data: Protocol.Page.SetDeviceMetricsOverrideRequest) {
-    this.page.setViewport(data);
+    this.safeFn(() => this.page.setViewport(data));
   }
 
   private async startScreencast(params: Protocol.Page.StartScreencastRequest): Promise<void> {
     const client = await this.getCdpSession();
-    await client.send('Page.startScreencast', params);
+    await this.safeFn(() => client.send('Page.startScreencast', params));
     client.on('Page.screencastFrame', this.onScreencastFrame.bind(this));
   }
 
@@ -143,7 +152,7 @@ export class PageHandler {
   private async sendMiscCommand(commandRequest: MiscCommandRequest): Promise<void> {
     const client = await this.getCdpSession();
     if (Object.values(MiscCommands).includes(commandRequest.command)) {
-      return client.send(commandRequest.command, commandRequest.params as never);
+      return this.safeFn(() => client.send(commandRequest.command, commandRequest.params as never));
     }
     return undefined;
   }

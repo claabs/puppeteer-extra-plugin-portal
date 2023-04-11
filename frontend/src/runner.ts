@@ -337,6 +337,7 @@ export default class Runner {
 
     this.wsClient.addEventListener('close', (e) => {
       this.showError(`Session complete! Browser has closed.`);
+      this.close();
     });
   };
 }

@@ -36,7 +36,7 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
       listenOpts: (this.opts as types.PluginOptions).webPortalConfig?.listenOpts,
       serverOpts: (this.opts as types.PluginOptions).webPortalConfig?.serverOpts,
     });
-    this.createExpressMiddleware = this.portalServer.createPortalMiddleware;
+    this.createExpressMiddleware = this.portalServer.createPortalMiddleware.bind(this.portalServer);
   }
 
   public get name(): string {
