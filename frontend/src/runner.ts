@@ -326,7 +326,7 @@ export default class Runner {
       this.onScreencastFrame(data);
     });
 
-    this.wsClient.addEventListener('open', (e) => {
+    this.wsClient.addEventListener('open', () => {
       console.log('Websocket opened');
       this.onWebSocketSetupComplete();
     });
@@ -335,7 +335,7 @@ export default class Runner {
       this.showError(`Error communicating with websocket server ${e}`);
     });
 
-    this.wsClient.addEventListener('close', (e) => {
+    this.wsClient.addEventListener('close', () => {
       this.showError(`Session complete! Browser has closed.`);
       this.close();
     });

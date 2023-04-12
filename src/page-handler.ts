@@ -79,7 +79,7 @@ export class PageHandler {
     this.debug('Created pageHandler');
   }
 
-  private async safeFn<T>(fn: () => T): Promise<T | void> {
+  private async safeFn<T>(fn: () => Promise<T>): Promise<T | void> {
     try {
       return await fn();
     } catch (err) {
@@ -102,7 +102,10 @@ export class PageHandler {
   public async close(): Promise<void> {
     this.debug('Closing websocket');
     if (this.ws) this.ws.close();
-    if (this.cdpSession) await this.safeFn(() => this.cdpSession?.detach());
+    await this.safeFn(async () => {
+      if (this.cdpSession) return this.cdpSession.detach();
+      return undefined;
+    });
   }
 
   private async getCdpSession(): Promise<CDPSession> {
@@ -119,7 +122,7 @@ export class PageHandler {
 
   private async messageHandler(data: RawData): Promise<void> {
     const dataString = data.toString();
-    const commandRequest: CommandRequest = JSON.parse(dataString);
+    const commandRequest = JSON.parse(dataString) as CommandRequest;
     if (commandRequest.command !== MiscCommands.EMULATE_TOUCH_FROM_MOUSE) {
       this.debug('Received message: %s', dataString);
     }
@@ -133,7 +136,7 @@ export class PageHandler {
   }
 
   private async setViewPort(data: Protocol.Page.SetDeviceMetricsOverrideRequest) {
-    this.safeFn(() => this.page.setViewport(data));
+    await this.safeFn(() => this.page.setViewport(data));
   }
 
   private async startScreencast(params: Protocol.Page.StartScreencastRequest): Promise<void> {
@@ -142,7 +145,7 @@ export class PageHandler {
     client.on('Page.screencastFrame', this.onScreencastFrame.bind(this));
   }
 
-  private async onScreencastFrame(data: Protocol.Page.ScreencastFrameEvent): Promise<void> {
+  private onScreencastFrame(data: Protocol.Page.ScreencastFrameEvent): void {
     this.debug('Got screencast frame: %j', { sessionId: data.sessionId, metadata: data.metadata });
     const commandResponse: CommandResponse = { command: 'Page.screencastFrame', data };
     if (!this.ws) throw new Error('Websocket not set for page');

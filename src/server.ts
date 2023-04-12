@@ -4,7 +4,6 @@ import path from 'path';
 import type { ListenOptions } from 'net';
 import https, { ServerOptions } from 'https';
 import { once } from 'events';
-import { URL } from 'url';
 import debug from 'debug';
 import { WebSocketServer } from 'ws';
 import type { Page } from 'puppeteer';
@@ -56,7 +55,7 @@ export class PortalServer {
     this.debug('basePath:', this.basePath);
   }
 
-  private portalMiddleware: express.RequestHandler = async (req, res, next) => {
+  private portalMiddleware: express.RequestHandler = async (req, _res, next) => {
     try {
       const upgradeHeader = (req.headers.upgrade || '').split(',').map((s) => s.trim());
       this.debug('Detected websocket upgrade header');
@@ -120,7 +119,7 @@ export class PortalServer {
     }
   }
 
-  private async closeServer(): Promise<void> {
+  private closeServer(): void {
     if (this.server) {
       this.debug('No more open portals, shutting down the express server...');
       this.server.close(() => {

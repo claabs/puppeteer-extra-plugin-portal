@@ -12,7 +12,9 @@
     "declaration": false,
   },
   "include": [
-    "**/*.ts"
+    "**/*.ts",
+    "*.config.js",
+    ".*rc.js",
   ],
   "exclude": [
     "node_modules",

@@ -11,7 +11,7 @@ import { PortalServer } from './server';
 export * from './types';
 
 const getPageTargetId = (page: Page): string => {
-  // eslint-disable-next-line no-underscore-dangle, @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, no-underscore-dangle, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
   return (page.target() as any)._targetId;
 };
 
@@ -39,11 +39,11 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
     this.createExpressMiddleware = this.portalServer.createPortalMiddleware.bind(this.portalServer);
   }
 
-  public get name(): string {
+  public override get name(): string {
     return 'portal';
   }
 
-  public get defaults(): types.PluginOptions {
+  public override get defaults(): types.PluginOptions {
     return {
       webPortalConfig: {
         listenOpts: {
@@ -87,14 +87,15 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
     prop.hasOpenPortal = () => this.hasOpenPortal(prop);
   }
 
-  async onPageCreated(page: Page): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/require-await
+  override async onPageCreated(page: Page): Promise<void> {
     this.debug('onPageCreated', page.url());
     this.addCustomMethods(page);
     page.on('close', () => this.closePortal(page));
   }
 
   /** Add additions to already existing pages  */
-  async onBrowser(browser: Browser): Promise<void> {
+  override async onBrowser(browser: Browser): Promise<void> {
     const pages = await browser.pages();
     pages.forEach((page) => this.addCustomMethods(page));
     browser.on('disconnected', () => this.closeAllBrowserPortals(browser));
