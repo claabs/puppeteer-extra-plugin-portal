@@ -14,10 +14,6 @@ const main = {
         exclude: /node_modules/,
       },
       {
-        test: /\.worker\.js$/,
-        use: { loader: 'worker-loader' },
-      },
-      {
         test: /\.css$/,
         use: ['style-loader', 'css-loader'],
       },
@@ -36,9 +32,6 @@ const main = {
     filename: 'index.bundle.js',
   },
   devtool: 'inline-source-map',
-  optimization: {
-    // minimize: false,
-  },
   plugins: [
     new HtmlWebPackPlugin({
       title: 'Puppeteer Portal',

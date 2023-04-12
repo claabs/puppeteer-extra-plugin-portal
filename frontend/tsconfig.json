@@ -9,6 +9,7 @@
     "module": "ESNext",
     "outDir": "./dist", /* Redirect output structure to the directory. */
     "removeComments": true,
+    "declaration": false,
   },
   "include": [
     "**/*.ts"
