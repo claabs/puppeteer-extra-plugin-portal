@@ -2,7 +2,7 @@
 /* eslint-disable class-methods-use-this */
 import { PuppeteerExtraPlugin } from 'puppeteer-extra-plugin';
 
-import type { Browser, Page } from 'puppeteer';
+import type { Browser, Page, Target } from 'puppeteer';
 import { URL } from 'url';
 import { RequestHandler } from 'express';
 import * as types from './types';
@@ -87,18 +87,20 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
     prop.hasOpenPortal = () => this.hasOpenPortal(prop);
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
-  override async onPageCreated(page: Page): Promise<void> {
-    this.debug('onPageCreated', page.url());
-    this.addCustomMethods(page);
-    page.on('close', () => this.closePortal(page));
-  }
-
   /** Add additions to already existing pages  */
   override async onBrowser(browser: Browser): Promise<void> {
     const pages = await browser.pages();
     pages.forEach((page) => this.addCustomMethods(page));
     browser.on('disconnected', () => this.closeAllBrowserPortals(browser));
+  }
+
+  override async onTargetCreated(target: Target): Promise<void> {
+    this.debug('onTargetCreated', target.url());
+    const page = await target.page();
+    if (page) {
+      this.addCustomMethods(page);
+      page.on('close', () => this.closePortal(page));
+    }
   }
 }
 

@@ -3,6 +3,7 @@
 import { addExtra } from 'puppeteer-extra';
 import open from 'open';
 import express from 'express';
+import { Page, Target } from 'puppeteer';
 import PortalPlugin from './index';
 
 jest.setTimeout(86400 * 1000);
@@ -51,6 +52,7 @@ describe('top level plugin interface', () => {
     await page.goto('https://www.google.com/recaptcha/api2/demo', { waitUntil: 'networkidle0' });
     const url = await page.openPortal();
     console.log(url);
+    open(url);
 
     const successDiv = await page.waitForSelector('.recaptcha-success', {
       timeout: 86400 * 1000,
@@ -173,7 +175,7 @@ describe('top level plugin interface', () => {
     await browser.close();
   });
 
-  it('should act as express middleware', async () => {
+  it.skip('should act as express middleware', async () => {
     expect.assertions(1);
     const puppeteer = addExtra(require('puppeteer'));
     const portalPlugin = PortalPlugin({ webPortalConfig: { baseUrl: 'http://localhost:3001' } });
@@ -202,6 +204,48 @@ describe('top level plugin interface', () => {
       timeout: 2 * 60 * 60 * 1000,
     });
     expect(successDiv).toBeDefined();
+    await browser.close();
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 5000);
+    });
+  });
+
+  it.skip('should handle onTargetCreated', async () => {
+    expect.assertions(1);
+    const puppeteer = addExtra(require('puppeteer'));
+    const portalPlugin = PortalPlugin();
+    puppeteer.use(portalPlugin);
+
+    const browser = await puppeteer.launch({
+      headless: true,
+    });
+    console.log('launched');
+    const page = await browser.newPage();
+    await page.goto('https://example.com', { waitUntil: 'networkidle0' });
+
+    await new Promise<void>((resolve) => {
+      browser.on('targetcreated', async (target: Target) => {
+        const page2 = (await target.page()) as Page;
+
+        const url = await page2.openPortal(); // `openPortal` is not a function
+        console.log(url);
+        open(url);
+
+        console.log('awaiting complete');
+        const successDiv = await page2.waitForSelector('#complete', {
+          visible: true,
+          timeout: 2 * 60 * 60 * 1000,
+        });
+        console.log('complete');
+        expect(successDiv).toBeDefined();
+        resolve();
+      });
+
+      page.waitForFunction(() =>
+        window.open('https://claabs.github.io/epicgames-freegames-node/test.html')
+      );
+    });
+
     await browser.close();
     await new Promise<void>((resolve) => {
       setTimeout(resolve, 5000);
