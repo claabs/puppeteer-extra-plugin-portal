@@ -1,14 +1,13 @@
-import express, { Router } from 'express';
+import express from 'express';
 import http, { Server } from 'http';
 import path from 'path';
-import type { ListenOptions, Socket } from 'net';
+import type { ListenOptions } from 'net';
 import https, { ServerOptions } from 'https';
 import { once } from 'events';
-import { URL } from 'url';
 import debug from 'debug';
-import { createProxyMiddleware, RequestHandler } from 'http-proxy-middleware';
-import { LogProviderCallback } from 'http-proxy-middleware/dist/types';
-import urlJoin from 'url-join';
+import { WebSocketServer } from 'ws';
+import type { Page } from 'puppeteer';
+import { PageHandler } from './page-handler';
 
 export interface PortalServerProps {
   listenOpts?: ListenOptions;
@@ -18,7 +17,7 @@ export interface PortalServerProps {
 }
 
 export interface HostPortalParams {
-  wsUrl: string;
+  page: Page;
   targetId: string;
 }
 
@@ -30,9 +29,9 @@ const frontendRoot =
 export class PortalServer {
   private server?: Server;
 
-  private openPortals: Set<string> = new Set();
+  private wsServer?: WebSocketServer;
 
-  private targetIdProxyMap: Map<string, RequestHandler> = new Map();
+  private targetIdPageHandlerMap: Map<string, PageHandler> = new Map();
 
   private listenOpts?: ListenOptions;
 
@@ -40,95 +39,106 @@ export class PortalServer {
 
   private webPortalBaseUrl: URL;
 
-  private app: express.Express;
-
   private debug: debug.Debugger;
 
-  private router: Router;
-
   private basePath: string;
+
+  private isMiddleware = false;
 
   constructor(props: PortalServerProps) {
     this.debug = props.debug;
     this.listenOpts = props.listenOpts;
     this.serverOpts = props.serverOpts || {};
     this.webPortalBaseUrl = props.webPortalBaseUrl;
-    this.app = express();
-    this.router = express.Router();
-
-    this.router.use(express.static(frontendRoot));
 
     this.basePath = props.webPortalBaseUrl?.pathname || '/';
     this.debug('basePath:', this.basePath);
-    this.app.use(this.basePath, this.router);
   }
 
-  private proxyLogger: LogProviderCallback = () => {
-    const subLogger = this.debug.extend('http-proxy-middleware');
-    return {
-      log: subLogger,
-      debug: subLogger,
-      error: subLogger,
-      info: subLogger,
-      warn: subLogger,
-    };
+  private portalMiddleware: express.RequestHandler = async (req, _res, next) => {
+    try {
+      const upgradeHeader = (req.headers.upgrade || '').split(',').map((s) => s.trim());
+      this.debug('Detected websocket upgrade header');
+      if (upgradeHeader.indexOf('websocket') === 0) {
+        if (!this.wsServer) {
+          this.debug('Creating new WebSocket server');
+          this.wsServer = new WebSocketServer({ noServer: true });
+        }
+        await this.upgradeHandler(req, this.wsServer);
+        return undefined;
+      }
+      return next();
+    } catch (err) {
+      return next(err);
+    }
   };
 
-  private upgradeHandler(req: express.Request, socket: Socket, head: Buffer): void {
-    const targetId = req.url.split('/').slice(-1)[0];
-    const proxyMiddleware = this.targetIdProxyMap.get(targetId);
-    if (proxyMiddleware?.upgrade) {
-      proxyMiddleware.upgrade(req, socket, head);
-    } else {
-      this.debug(`No proxy middleware found for targetId "${targetId}" when upgrading`);
-    }
+  private middlewareHandlers = [express.static(frontendRoot), this.portalMiddleware];
+
+  public createPortalMiddleware(): express.RequestHandler[] {
+    this.isMiddleware = true;
+    return this.middlewareHandlers;
+  }
+
+  private upgradeHandler(req: http.IncomingMessage, wsServer: WebSocketServer): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      wsServer.handleUpgrade(req, req.socket, Buffer.alloc(0), (ws, request) => {
+        try {
+          this.debug('In wsServer handleUpgrade');
+          if (!request.url) throw new Error('Websocket request lacks URL');
+          const targetId = request.url.split('/').slice(-1)[0];
+          if (!targetId) throw new Error(`Could not find targetId in upgrade request`);
+          const pageHandler = this.targetIdPageHandlerMap.get(targetId);
+          if (!pageHandler) throw new Error('Could not find matching page handler for target ID');
+          pageHandler.setWs(ws);
+          wsServer.emit('connection', ws, req);
+          this.debug('Emitted connection for target %s', targetId);
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
   }
 
   private async openServer(): Promise<void> {
     if (!this.server) {
       this.debug('Starting the express server...');
+      const app = express();
+      app.use(this.basePath, this.middlewareHandlers);
       if (Object.entries(this.serverOpts).length > 0) {
         // The serverOpts are mostly HTTPS-related options, so use `https` if there's any options set
-        this.server = https.createServer(this.serverOpts, this.app);
+        this.server = https.createServer(this.serverOpts, app);
       } else {
-        // Otherwise, we just use `http`. This is pretty much the first half of `this.app.listen()`
-        this.server = http.createServer(this.app);
+        // Otherwise, we just use `http`. This is pretty much the first half of `app.listen()`
+        this.server = http.createServer(app);
       }
-      this.server = this.app.listen(this.listenOpts);
+      this.server = app.listen(this.listenOpts);
       await once(this.server, 'listening');
       this.debug('Express server now listening');
-      // http-proxy-middleware requires a `server` object to add the upgrade path.
-      // Since it doesn't exist when setting up the middleware, we need to pass it to it after we start listening on the server
-      this.server.on('upgrade', this.upgradeHandler.bind(this));
     }
   }
 
-  private async closeServer(): Promise<void> {
+  private closeServer(): void {
     if (this.server) {
-      this.server.on('close', () => {
-        this.debug('The express server has been closed');
-      });
       this.debug('No more open portals, shutting down the express server...');
-      this.server.close();
-      this.server = undefined;
+      this.server.close(() => {
+        this.debug('The express server has been closed');
+        this.server = undefined;
+      });
     }
   }
 
   public async hostPortal(params: HostPortalParams): Promise<string> {
-    this.debug('params.wsUrl', params.wsUrl);
-    const wsProxy = createProxyMiddleware(urlJoin(this.basePath, `/ws/${params.targetId}`), {
-      target: params.wsUrl,
-      logLevel: this.debug.enabled ? 'debug' : 'silent',
-      logProvider: this.proxyLogger,
-      ws: true,
-      changeOrigin: true,
-    });
-    this.targetIdProxyMap.set(params.targetId, wsProxy);
-    this.router.use('/ws', wsProxy); // Proxy websockets
-    if (this.openPortals.size === 0) {
+    if (this.targetIdPageHandlerMap.size === 0 && !this.isMiddleware) {
       await this.openServer();
     }
-    this.openPortals.add(params.targetId);
+    const pageHandler = new PageHandler({
+      page: params.page,
+      targetId: params.targetId,
+      debug: this.debug,
+    });
+    this.targetIdPageHandlerMap.set(params.targetId, pageHandler);
     const fullUrl = this.webPortalBaseUrl;
     fullUrl.searchParams.set('targetId', params.targetId);
     this.debug('fullUrl', fullUrl.toString());
@@ -136,13 +146,16 @@ export class PortalServer {
   }
 
   public async closePortal(targetId: string): Promise<void> {
-    this.debug(`Closing portal for targetId "${targetId}""`);
-    this.openPortals.delete(targetId);
-    this.targetIdProxyMap.delete(targetId);
-    if (this.openPortals.size === 0) this.closeServer();
+    this.debug(`Closing portal for targetId "${targetId}"`);
+    const handler = this.targetIdPageHandlerMap.get(targetId);
+    if (handler) await handler.close();
+    this.targetIdPageHandlerMap.delete(targetId);
+    if (this.targetIdPageHandlerMap.size === 0 && !this.isMiddleware) {
+      this.closeServer();
+    }
   }
 
   public hasOpenPortal(targetId: string): boolean {
-    return this.openPortals.has(targetId);
+    return this.targetIdPageHandlerMap.has(targetId);
   }
 }

@@ -15,8 +15,6 @@
     "declaration": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
     "strict": true,
     "pretty": true,
     "stripInternal": true,

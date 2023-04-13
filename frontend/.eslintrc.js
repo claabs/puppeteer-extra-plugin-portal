@@ -1,35 +1,23 @@
 module.exports = {
   root: true,
   env: {
-    node: true,
     browser: true,
-  },
-  globals: {
-    hcaptcha: true,
-    draw: true,
   },
   extends: [
     'airbnb-base',
+    'airbnb-typescript/base',
     'plugin:@typescript-eslint/recommended',
     'plugin:prettier/recommended',
-    'plugin:jest/recommended',
+    'plugin:promise/recommended',
   ],
-  parser: '@typescript-eslint/parser',
-  plugins: ['@typescript-eslint', 'jest'],
-  rules: {
-    'import/extensions': 0,
-    'no-console': 0,
+  parserOptions: {
+    ecmaVersion: 'latest',
+    sourceType: 'module',
+    project: './frontend/tsconfig.json',
   },
-  settings: {
-    'import/extensions': ['.js', '.ts'],
-    'import/parsers': {
-      '@typescript-eslint/parser': ['.ts'],
-    },
-    'import/resolver': {
-      node: {
-        extensions: ['.js', '.ts'],
-      },
-    },
+  plugins: ['@typescript-eslint'],
+  rules: {
+    'no-console': 0,
   },
   overrides: [
     {
@@ -39,4 +27,5 @@ module.exports = {
       },
     },
   ],
+  ignorePatterns: ['**/dist', '**/node_modules', '!.*rc.js'],
 };

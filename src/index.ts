@@ -2,15 +2,16 @@
 /* eslint-disable class-methods-use-this */
 import { PuppeteerExtraPlugin } from 'puppeteer-extra-plugin';
 
-import type { Browser, Page } from 'puppeteer';
+import type { Browser, Page, Target } from 'puppeteer';
 import { URL } from 'url';
+import { RequestHandler } from 'express';
 import * as types from './types';
 import { PortalServer } from './server';
 
 export * from './types';
 
 const getPageTargetId = (page: Page): string => {
-  // eslint-disable-next-line no-underscore-dangle, @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, no-underscore-dangle, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
   return (page.target() as any)._targetId;
 };
 
@@ -23,6 +24,8 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
 
   private portalServer: PortalServer;
 
+  public createExpressMiddleware: () => RequestHandler[];
+
   constructor(opts?: Partial<types.PluginOptions>) {
     super(opts);
     this.debug('Initialized', this.opts);
@@ -33,13 +36,14 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
       listenOpts: (this.opts as types.PluginOptions).webPortalConfig?.listenOpts,
       serverOpts: (this.opts as types.PluginOptions).webPortalConfig?.serverOpts,
     });
+    this.createExpressMiddleware = this.portalServer.createPortalMiddleware.bind(this.portalServer);
   }
 
-  public get name(): string {
+  public override get name(): string {
     return 'portal';
   }
 
-  public get defaults(): types.PluginOptions {
+  public override get defaults(): types.PluginOptions {
     return {
       webPortalConfig: {
         listenOpts: {
@@ -52,10 +56,8 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
 
   public async openPortal(page: Page): Promise<string> {
     const targetId = getPageTargetId(page);
-    const browser = page.browser();
-    const wsUrl = browser.wsEndpoint();
     const url = await this.portalServer.hostPortal({
-      wsUrl,
+      page,
       targetId,
     });
     return url;
@@ -85,17 +87,20 @@ export class PuppeteerExtraPluginPortal extends PuppeteerExtraPlugin {
     prop.hasOpenPortal = () => this.hasOpenPortal(prop);
   }
 
-  async onPageCreated(page: Page): Promise<void> {
-    this.debug('onPageCreated', page.url());
-    this.addCustomMethods(page);
-    page.on('close', () => this.closePortal(page));
-  }
-
   /** Add additions to already existing pages  */
-  async onBrowser(browser: Browser): Promise<void> {
+  override async onBrowser(browser: Browser): Promise<void> {
     const pages = await browser.pages();
     pages.forEach((page) => this.addCustomMethods(page));
     browser.on('disconnected', () => this.closeAllBrowserPortals(browser));
+  }
+
+  override async onTargetCreated(target: Target): Promise<void> {
+    this.debug('onTargetCreated', target.url());
+    const page = await target.page();
+    if (page) {
+      this.addCustomMethods(page);
+      page.on('close', () => this.closePortal(page));
+    }
   }
 }
 

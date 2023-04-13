@@ -5,38 +5,43 @@ module.exports = {
   },
   extends: [
     'airbnb-base',
-    'plugin:@typescript-eslint/recommended',
+    'airbnb-typescript/base',
     'plugin:prettier/recommended',
-    'plugin:jest/recommended',
+    'plugin:promise/recommended',
   ],
-  parser: '@typescript-eslint/parser',
-  plugins: ['@typescript-eslint', 'jest'],
-  rules: {
-    'import/extensions': 0,
-    'import/no-extraneous-dependencies': [
-      'error',
-      { devDependencies: ['**/*.test.ts', '**/*.spec.ts'] },
-    ],
-  },
-  settings: {
-    'import/extensions': ['.js', '.ts'],
-    'import/parsers': {
-      '@typescript-eslint/parser': ['.ts'],
-    },
-    'import/resolver': {
-      node: {
-        extensions: ['.js', '.ts'],
-      },
-    },
-  },
   overrides: [
     {
-      files: ['**/*.test.ts', '**/*.spec.ts'],
+      files: ['**/*.test.ts'],
+      plugins: ['jest'],
+      extends: ['plugin:jest/all'],
       rules: {
+        'jest/no-hooks': 'off',
         '@typescript-eslint/no-var-requires': 0,
         'global-require': 0,
       },
     },
+    {
+      files: ['**/!(*.test).ts'],
+      extends: [
+        'plugin:@typescript-eslint/recommended',
+        'plugin:@typescript-eslint/recommended-requiring-type-checking',
+      ],
+    },
   ],
-  ignorePatterns: ['dist', 'node_modules'],
+  parserOptions: {
+    ecmaVersion: 'latest',
+    sourceType: 'module',
+    project: './tsconfig.json',
+  },
+  rules: {
+    'import/extensions': 0,
+    'import/no-extraneous-dependencies': ['error', { devDependencies: ['**/*.test.ts'] }],
+    '@typescript-eslint/no-misused-promises': [
+      'error',
+      {
+        checksVoidReturn: false,
+      },
+    ],
+  },
+  ignorePatterns: ['**/dist', '**/node_modules', '!.*rc.js'],
 };

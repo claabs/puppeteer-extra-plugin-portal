@@ -1,6 +1,6 @@
 {
   "name": "puppeteer-extra-plugin-portal-frontend",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "description": "",
   "main": "src/index.ts",
   "scripts": {
@@ -8,19 +8,15 @@
   },
   "author": "",
   "license": "MIT",
-  "dependencies": {
-    "puppeteer-core": "^10.0.0"
-  },
   "devDependencies": {
-    "css-loader": "^5.2.6",
+    "css-loader": "^6.7.3",
+    "devtools-protocol": "^0.0.1129085",
     "file-loader": "^6.2.0",
-    "html-webpack-plugin": "^5.3.1",
-    "path-browserify": "^1.0.1",
-    "rimraf": "^3.0.2",
-    "style-loader": "^2.0.0",
-    "ts-loader": "^9.2.2",
-    "webpack": "^5.38.1",
-    "webpack-cli": "^4.7.0",
-    "worker-loader": "^3.0.8"
+    "html-webpack-plugin": "^5.5.0",
+    "rimraf": "^5.0.0",
+    "style-loader": "^3.3.2",
+    "ts-loader": "^9.4.2",
+    "webpack": "^5.79.0",
+    "webpack-cli": "^5.0.1"
   }
 }

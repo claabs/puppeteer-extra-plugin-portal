@@ -6,11 +6,11 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       # Setup .npmrc file to publish to npm
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
-          node-version: '14.x'
+          node-version-file: '.nvmrc'
           registry-url: 'https://registry.npmjs.org'
       - run: npm ci
       - run: cd frontend && npm ci
@@ -18,11 +18,3 @@ jobs:
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      # Setup .npmrc file to publish to GitHub Packages (doesn't work due to package name requiring scope)
-      # - uses: actions/setup-node@v2
-      #   with:
-      #     registry-url: 'https://npm.pkg.github.com'
-      # # Publish to GitHub Packages
-      # - run: npm publish
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
