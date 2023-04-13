@@ -10,13 +10,13 @@
   "license": "MIT",
   "devDependencies": {
     "css-loader": "^6.7.3",
-    "devtools-protocol": "^0.0.1126404",
+    "devtools-protocol": "^0.0.1129085",
     "file-loader": "^6.2.0",
     "html-webpack-plugin": "^5.5.0",
     "rimraf": "^5.0.0",
     "style-loader": "^3.3.2",
     "ts-loader": "^9.4.2",
-    "webpack": "^5.78.0",
+    "webpack": "^5.79.0",
     "webpack-cli": "^5.0.1"
   }
 }
