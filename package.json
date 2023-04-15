@@ -1,6 +1,6 @@
 {
   "name": "puppeteer-extra-plugin-portal",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "description": "A puppeteer-extra plugin to let you interact with headless sessions remotely",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",

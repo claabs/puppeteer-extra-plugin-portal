@@ -50,6 +50,7 @@ const app = express();
 app.use(portalPlugin.createExpressMiddleware());
 const server = app.listen(3001);
 server.headersTimeout = 0; // Required for Node 18+ due to slow loris attack change
+server.requestTimeout = 0;
 
 // puppeteer usage as normal
 puppeteer.launch({ headless: true }).then(async browser => {

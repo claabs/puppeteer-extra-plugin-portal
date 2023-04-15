@@ -113,8 +113,9 @@ export class PortalServer {
         // Otherwise, we just use `http`. This is pretty much the first half of `app.listen()`
         this.server = http.createServer(app);
       }
-      this.server = app.listen(this.listenOpts);
+      this.server = this.server.listen(this.listenOpts);
       this.server.headersTimeout = 0;
+      this.server.requestTimeout = 0;
       await once(this.server, 'listening');
       this.debug('Express server now listening');
     }
