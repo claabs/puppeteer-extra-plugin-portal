@@ -5,7 +5,7 @@ import type { ListenOptions } from 'net';
 import https, { ServerOptions } from 'https';
 import { once } from 'events';
 import debug from 'debug';
-import { WebSocketServer } from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
 import type { Page } from 'puppeteer';
 import { PageHandler } from './page-handler';
 
@@ -58,8 +58,8 @@ export class PortalServer {
   private portalMiddleware: express.RequestHandler = async (req, _res, next) => {
     try {
       const upgradeHeader = (req.headers.upgrade || '').split(',').map((s) => s.trim());
-      this.debug('Detected websocket upgrade header');
       if (upgradeHeader.indexOf('websocket') === 0) {
+        this.debug('Detected websocket upgrade header');
         if (!this.wsServer) {
           this.debug('Creating new WebSocket server');
           this.wsServer = new WebSocketServer({ noServer: true });
@@ -80,10 +80,10 @@ export class PortalServer {
     return this.middlewareHandlers;
   }
 
-  private upgradeHandler(req: http.IncomingMessage, wsServer: WebSocketServer): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      wsServer.handleUpgrade(req, req.socket, Buffer.alloc(0), (ws, request) => {
-        try {
+  private upgradeHandler(req: http.IncomingMessage, wsServer: WebSocketServer): Promise<WebSocket> {
+    return new Promise<WebSocket>((resolve, reject) => {
+      try {
+        wsServer.handleUpgrade(req, req.socket, Buffer.alloc(0), (ws, request) => {
           this.debug('In wsServer handleUpgrade');
           if (!request.url) throw new Error('Websocket request lacks URL');
           const targetId = request.url.split('/').slice(-1)[0];
@@ -93,11 +93,11 @@ export class PortalServer {
           pageHandler.setWs(ws);
           wsServer.emit('connection', ws, req);
           this.debug('Emitted connection for target %s', targetId);
-          resolve();
-        } catch (err) {
-          reject(err);
-        }
-      });
+          resolve(ws);
+        });
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 
@@ -114,6 +114,7 @@ export class PortalServer {
         this.server = http.createServer(app);
       }
       this.server = app.listen(this.listenOpts);
+      this.server.headersTimeout = 0;
       await once(this.server, 'listening');
       this.debug('Express server now listening');
     }

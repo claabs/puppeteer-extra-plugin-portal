@@ -4,9 +4,10 @@ import { addExtra } from 'puppeteer-extra';
 import open from 'open';
 import express from 'express';
 import { Page, Target } from 'puppeteer';
+import WebSocket from 'ws';
 import PortalPlugin from './index';
 
-jest.setTimeout(86400 * 1000);
+jest.setTimeout(86400 * 1000 * 20);
 describe('top level plugin interface', () => {
   it.skip('should shutdown portals on a closed browser', async () => {
     expect.assertions(2);
@@ -82,7 +83,7 @@ describe('top level plugin interface', () => {
     await browser.close();
   });
 
-  it.skip('should wait for user input', async () => {
+  it('should wait for user input', async () => {
     expect.assertions(1);
     const puppeteer = addExtra(require('puppeteer'));
     const portalPlugin = PortalPlugin();
@@ -102,7 +103,7 @@ describe('top level plugin interface', () => {
 
     const successDiv = await page.waitForSelector('#complete', {
       visible: true,
-      timeout: 2 * 60 * 60 * 1000,
+      timeout: 2 * 60 * 60 * 60 * 1000,
     });
     expect(successDiv).toBeDefined();
     await browser.close();
@@ -250,5 +251,43 @@ describe('top level plugin interface', () => {
     await new Promise<void>((resolve) => {
       setTimeout(resolve, 5000);
     });
+  });
+  it.skip('should not timeout', async () => {
+    expect.assertions(1);
+    const puppeteer = addExtra(require('puppeteer'));
+    const portalPlugin = PortalPlugin();
+    puppeteer.use(portalPlugin);
+    const browser = await puppeteer.launch({
+      headless: true,
+    });
+    console.log('launched');
+    const page = await browser.newPage();
+    await page.goto('https://claabs.github.io/epicgames-freegames-node/test.html', {
+      waitUntil: 'networkidle0',
+    });
+
+    const url = await page.openPortal();
+    const targetId = new URL(url).searchParams.get('targetId')!;
+
+    const clientWs = new WebSocket(`ws://localhost:3000/ws/${targetId}`);
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 1000 * 90);
+    });
+
+    console.log('90 seconds');
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 1000 * 10);
+    });
+
+    clientWs.send(
+      JSON.stringify({
+        command: 'Page.reload',
+        params: {},
+      })
+    );
+    expect(clientWs.readyState).toStrictEqual(clientWs.OPEN);
+    await browser.close();
   });
 });
